@@ -1,0 +1,29 @@
+# Supabase Rules for AI
+
+## Setup
+- Supabase JS SDK for client-side queries
+- Client config in `src/lib/supabase/client.js`
+- Database migrations in `supabase/migrations/`
+- Edge functions in `supabase/functions/`
+
+## Patterns
+- Use the Supabase JS client for all DB operations
+- Use realtime subscriptions for live events
+- Use Row Level Security (RLS) on all tables
+- Edge functions for server-side logic (anti-cheat, event scheduling)
+
+## Auth
+- Support Steam, Google, Apple login (configured in Supabase dashboard)
+- Store auth state client-side
+- Use RLS policies that check auth.uid()
+
+## Database
+- PostgreSQL with relational schema
+- Use migrations for schema changes (never modify directly)
+- JSON columns for flexible game data (event configs, shape buffs)
+- Timestamps on all tables (created_at, updated_at)
+
+## Not Yet Set Up
+- Supabase is planned but not connected yet
+- For now, game saves to localStorage only
+- When ready: `npm install @supabase/supabase-js`

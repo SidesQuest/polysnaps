@@ -1,0 +1,33 @@
+# Polysnaps — Game Rules for AI
+
+## What is Polysnaps?
+An incremental/idle game where you build a network of geometric shapes. Resources flow inward from outer shapes toward a center core shape. Prestige to evolve your core (more sides = more connections = more production).
+
+**Tagline:** Snap. Flow. Grow.
+
+## Core Mechanics
+- Center shape collects all resources (starts as triangle, gains sides on prestige)
+- Shapes snap to edges of other shapes (free-form, no grid)
+- Resources always flow INWARD toward the core
+- Each layer of shapes generates for the layer closer to the core
+- Fog of war hides the map, expands as you place shapes and upgrade
+- Ground has buff zones and puzzle slots
+- Shape combos (patterns like stars, big squares) give bonuses
+- Permanent shape buffs from events (golden trim, visual + functional)
+- Multiple material types unlock with prestige
+- Offline idle progression is a must
+
+## Game State
+- Game state lives in `src/lib/game/state.svelte.js` using Svelte 5 runes ($state, $derived)
+- Game engine tick loop in `src/lib/game/engine.js`
+- Save/load via localStorage in `src/lib/game/save.js`
+- Offline calculation in `src/lib/game/offline.js`
+
+## Design Doc
+Full game design is in `GAME_DESIGN.md` at the repo root. Read it for detailed mechanics.
+
+## Important
+- This is an IDLE game — things should produce automatically
+- Numbers get BIG — always use formatNumber() from `$lib/utils/format.js`
+- Keep the UI clean and readable — retro pixel art style
+- The game is a SPA — all on one page, no routing needed beyond the root

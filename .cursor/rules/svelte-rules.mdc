@@ -1,0 +1,36 @@
+# Svelte Rules for AI
+
+## Framework
+- SvelteKit with adapter-static (SPA mode)
+- Svelte 5 with runes ($state, $derived, $effect, $props)
+- JavaScript (NOT TypeScript)
+- Vite as build tool
+
+## Patterns
+- Use `$state()` for reactive state
+- Use `$derived()` for computed values (perfect for idle game calculations)
+- Use `$effect()` sparingly — prefer onMount/onDestroy for lifecycle
+- Use `$props()` for component props
+- Use `{@render children()}` for slot content (Svelte 5 syntax)
+- Put shared game state in `.svelte.js` files so runes work outside components
+- Components go in `src/lib/components/`
+- Game logic goes in `src/lib/game/`
+- Utility functions go in `src/lib/utils/`
+
+## Style
+- Use component-scoped `<style>` blocks (Svelte default)
+- Global styles in `src/app.css`
+- CSS custom properties (--color-*, --font-*) for theming
+- Pixel font: 'Press Start 2P'
+- Dark background, glowing accents
+
+## File Naming
+- Components: PascalCase.svelte (e.g., UpgradeCard.svelte)
+- JS modules: camelCase.js (e.g., formatNumber.js)
+- Svelte state files: name.svelte.js (so runes work)
+
+## Don'ts
+- Do NOT use TypeScript
+- Do NOT use SSR (it's disabled in +layout.js)
+- Do NOT import from $app/server
+- Do NOT use Svelte 4 syntax (no `export let`, no `$$props`, no `<slot>`)
