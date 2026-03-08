@@ -1,3 +1,5 @@
+import { SHAPE_DEFS } from './shapes.js';
+
 const LAST_ONLINE_KEY = 'polysnaps_last_online';
 
 export function recordOnlineTime() {
@@ -13,11 +15,16 @@ export function getOfflineSeconds() {
 }
 
 export function calculateOfflineEarnings(gameState, offlineSeconds) {
-	// TODO: calculate based on production rates and offline multiplier
-	const baseProductionPerSecond = gameState.shapes.length;
-	const offlineMultiplier = 0.5; // 50% efficiency while offline, upgradeable later
+	let productionPerSecond = 0;
+	for (const node of gameState.nodes) {
+		if (node.id === 'core') continue;
+		const def = SHAPE_DEFS[node.shape];
+		if (def) productionPerSecond += def.baseProduction * node.level;
+	}
+
+	const offlineMultiplier = 0.5;
 
 	return {
-		energy: Math.floor(baseProductionPerSecond * offlineSeconds * offlineMultiplier)
+		energy: Math.floor(productionPerSecond * offlineSeconds * offlineMultiplier)
 	};
 }
