@@ -1,70 +1,92 @@
 <script>
-	import { onMount, onDestroy } from 'svelte';
-	import { gameState, addResource } from '$lib/game/state.svelte.js';
+	import { onMount } from 'svelte';
+	import { gameState, addResource, getTotalProduction, loadStateFrom, getPlacedCount } from '$lib/game/state.svelte.js';
 	import { startEngine, stopEngine, onTick } from '$lib/game/engine.js';
-	import { formatNumber } from '$lib/utils/format.js';
+	import { saveGame, loadGame, hasSave } from '$lib/game/save.js';
+	import { getOfflineSeconds, calculateOfflineEarnings, recordOnlineTime } from '$lib/game/offline.js';
+	import { formatNumber, formatTime } from '$lib/utils/format.js';
+	import ShapeNetwork from './ShapeNetwork.svelte';
+	import ShopPanel from '$lib/components/ui/ShopPanel.svelte';
+	import PrestigeButton from '$lib/components/ui/PrestigeButton.svelte';
 
-	let energyPerSecond = $derived(gameState.shapes.length);
+	let production = $derived(getTotalProduction());
+	let placed = $derived(getPlacedCount());
+	let offlinePopup = $state(null);
 
 	onMount(() => {
+		if (hasSave()) {
+			const saved = loadGame();
+			loadStateFrom(saved);
+
+			const offlineSecs = getOfflineSeconds();
+			if (offlineSecs > 10 && placed > 0) {
+				const earnings = calculateOfflineEarnings(gameState, offlineSecs);
+				if (earnings.energy > 0) {
+					addResource('energy', earnings.energy);
+					offlinePopup = { seconds: offlineSecs, energy: earnings.energy };
+					setTimeout(() => (offlinePopup = null), 5000);
+				}
+			}
+		}
+
 		const unsubscribe = onTick((delta) => {
-			addResource('energy', energyPerSecond * delta);
+			addResource('energy', production * delta);
 			gameState.stats.timePlayed += delta;
 		});
 
 		startEngine();
+		recordOnlineTime();
+
+		const saveInterval = setInterval(() => {
+			saveGame(gameState);
+			recordOnlineTime();
+		}, 30000);
 
 		return () => {
 			unsubscribe();
 			stopEngine();
+			clearInterval(saveInterval);
+			saveGame(gameState);
+			recordOnlineTime();
 		};
 	});
-
-	function handleCoreClick() {
-		addResource('energy', 1);
-		gameState.stats.totalEnergyEarned += 1;
-	}
 </script>
 
 <div class="game-canvas">
+	{#if offlinePopup}
+		<div class="offline-popup" onclick={() => (offlinePopup = null)} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && (offlinePopup = null)}>
+			<span class="offline-title">WELCOME BACK</span>
+			<span class="offline-time">Away for {formatTime(offlinePopup.seconds)}</span>
+			<span class="offline-earned">+{formatNumber(offlinePopup.energy)} energy</span>
+			<span class="offline-dismiss">click to dismiss</span>
+		</div>
+	{/if}
+
 	<div class="hud">
 		<div class="resource-display">
-			<span class="resource-label">Energy</span>
+			<span class="resource-label">ENERGY</span>
 			<span class="resource-value">{formatNumber(gameState.resources.energy)}</span>
-			<span class="resource-rate">{formatNumber(energyPerSecond)}/s</span>
+			<span class="resource-rate">+{formatNumber(production)}/s</span>
 		</div>
 		<div class="stats">
-			<span>Core: {gameState.coreShape.type} ({gameState.coreShape.sides} sides)</span>
-			<span>Shapes: {gameState.shapes.length}</span>
+			<span>{gameState.coreShape.type} ({gameState.coreShape.sides} sides)</span>
+			<span>{placed} shapes</span>
+			{#if gameState.prestige.level > 0}
+				<span class="prestige-badge">P{gameState.prestige.level}</span>
+			{/if}
 		</div>
 	</div>
 
-	<div class="canvas-area">
-		<button class="core-shape" onclick={handleCoreClick}>
-			<svg viewBox="-60 -60 120 120" width="120" height="120">
-				<polygon
-					points={getPolygonPoints(gameState.coreShape.sides, 50)}
-					fill="none"
-					stroke="var(--color-accent)"
-					stroke-width="2"
-				/>
-			</svg>
-			<span class="core-label">TAP</span>
-		</button>
-		<p class="hint">click the core to earn energy</p>
+	<div class="main-area">
+		<div class="network-area">
+			<ShapeNetwork />
+		</div>
+		<div class="side-panel">
+			<ShopPanel />
+			<PrestigeButton />
+		</div>
 	</div>
 </div>
-
-<script module>
-	function getPolygonPoints(sides, radius) {
-		const points = [];
-		for (let i = 0; i < sides; i++) {
-			const angle = (i * 2 * Math.PI) / sides - Math.PI / 2;
-			points.push(`${Math.cos(angle) * radius},${Math.sin(angle) * radius}`);
-		}
-		return points.join(' ');
-	}
-</script>
 
 <style>
 	.game-canvas {
@@ -73,92 +95,129 @@
 		display: flex;
 		flex-direction: column;
 		position: relative;
+		overflow: hidden;
+	}
+
+	.offline-popup {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		background: var(--color-surface);
+		border: 1px solid var(--color-gold);
+		border-radius: 6px;
+		padding: 1.5rem 2rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.4rem;
+		z-index: 100;
+		animation: popup-in 0.3s ease-out;
+		box-shadow: 0 0 30px rgba(255, 204, 68, 0.2);
+		cursor: pointer;
+	}
+
+	.offline-title {
+		font-size: 0.55rem;
+		color: var(--color-gold);
+		letter-spacing: 3px;
+	}
+
+	.offline-time {
+		font-size: 0.35rem;
+		color: var(--color-text-dim);
+	}
+
+	.offline-earned {
+		font-size: 0.7rem;
+		color: var(--color-green);
+		text-shadow: 0 0 10px rgba(68, 255, 136, 0.4);
+	}
+
+	.offline-dismiss {
+		font-size: 0.25rem;
+		color: var(--color-text-dim);
+		opacity: 0.5;
+		margin-top: 0.3rem;
 	}
 
 	.hud {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		padding: 1.5rem;
+		padding: 0.8rem 1.2rem;
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
 		z-index: 10;
+		flex-shrink: 0;
 	}
 
 	.resource-display {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: 0.15rem;
 	}
 
 	.resource-label {
-		font-size: 0.6rem;
+		font-size: 0.45rem;
 		color: var(--color-text-dim);
-		text-transform: uppercase;
 		letter-spacing: 2px;
 	}
 
 	.resource-value {
-		font-size: 1.5rem;
+		font-size: 1.3rem;
 		color: var(--color-accent);
 		text-shadow: 0 0 20px var(--color-accent-glow);
 	}
 
 	.resource-rate {
-		font-size: 0.5rem;
+		font-size: 0.4rem;
 		color: var(--color-green);
 	}
 
 	.stats {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
-		font-size: 0.5rem;
+		gap: 0.15rem;
+		font-size: 0.4rem;
 		color: var(--color-text-dim);
 		text-align: right;
 	}
 
-	.canvas-area {
+	.prestige-badge {
+		color: var(--color-gold);
+		text-shadow: 0 0 8px rgba(255, 204, 68, 0.4);
+	}
+
+	.main-area {
 		flex: 1;
 		display: flex;
-		flex-direction: column;
+		padding: 0 1.2rem 1rem;
+		gap: 0.8rem;
+		overflow: hidden;
+	}
+
+	.network-area {
+		flex: 1;
+		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 1.5rem;
+		min-width: 0;
 	}
 
-	.core-shape {
-		background: none;
-		border: none;
-		cursor: pointer;
+	.side-panel {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		gap: 0.5rem;
-		transition: transform 0.1s;
-		position: relative;
+		gap: 0.6rem;
+		flex-shrink: 0;
 	}
 
-	.core-shape:active {
-		transform: scale(0.95);
-	}
-
-	.core-shape:hover polygon {
-		filter: drop-shadow(0 0 15px var(--color-accent));
-	}
-
-	.core-label {
-		font-family: var(--font-pixel);
-		font-size: 0.5rem;
-		color: var(--color-text-dim);
-		letter-spacing: 3px;
-	}
-
-	.hint {
-		font-size: 0.45rem;
-		color: var(--color-text-dim);
-		opacity: 0.5;
+	@keyframes popup-in {
+		from {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.9);
+		}
+		to {
+			opacity: 1;
+			transform: translate(-50%, -50%) scale(1);
+		}
 	}
 </style>
