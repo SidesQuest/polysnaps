@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { gameState, addResource, getTotalProduction, loadStateFrom, getPlacedCount } from '$lib/game/state.svelte.js';
+	import { gameState, addResource, getProductionByResource, getUnlockedResources, loadStateFrom, getPlacedCount } from '$lib/game/state.svelte.js';
 	import { startEngine, stopEngine, onTick } from '$lib/game/engine.js';
 	import { saveGame, loadGame, hasSave } from '$lib/game/save.js';
 	import { getOfflineSeconds, calculateOfflineEarnings, recordOnlineTime } from '$lib/game/offline.js';
@@ -8,10 +8,15 @@
 	import ShapeNetwork from './ShapeNetwork.svelte';
 	import ShopPanel from '$lib/components/ui/ShopPanel.svelte';
 	import PrestigeButton from '$lib/components/ui/PrestigeButton.svelte';
+	import ComboPanel from '$lib/components/ui/ComboPanel.svelte';
+	import SkillPanel from '$lib/components/ui/SkillPanel.svelte';
+	import SkillOverlay from '$lib/components/ui/SkillOverlay.svelte';
 
-	let production = $derived(getTotalProduction());
+	let production = $derived(getProductionByResource());
+	let unlockedResources = $derived(getUnlockedResources());
 	let placed = $derived(getPlacedCount());
 	let offlinePopup = $state(null);
+	let skillTreeOpen = $state(false);
 
 	onMount(() => {
 		if (hasSave()) {
@@ -21,16 +26,21 @@
 			const offlineSecs = getOfflineSeconds();
 			if (offlineSecs > 10 && placed > 0) {
 				const earnings = calculateOfflineEarnings(gameState, offlineSecs);
-				if (earnings.energy > 0) {
+				if (earnings.energy > 0 || earnings.flux > 0 || earnings.prisms > 0) {
 					addResource('energy', earnings.energy);
-					offlinePopup = { seconds: offlineSecs, energy: earnings.energy };
+					if (earnings.flux > 0) addResource('flux', earnings.flux);
+					if (earnings.prisms > 0) addResource('prisms', earnings.prisms);
+					offlinePopup = { seconds: offlineSecs, ...earnings };
 					setTimeout(() => (offlinePopup = null), 5000);
 				}
 			}
 		}
 
 		const unsubscribe = onTick((delta) => {
-			addResource('energy', production * delta);
+			const prod = getProductionByResource();
+			addResource('energy', prod.energy * delta);
+			if (prod.flux > 0) addResource('flux', prod.flux * delta);
+			if (prod.prisms > 0) addResource('prisms', prod.prisms * delta);
 			gameState.stats.timePlayed += delta;
 		});
 
@@ -53,20 +63,34 @@
 </script>
 
 <div class="game-canvas">
+	{#if skillTreeOpen}
+		<SkillOverlay onclose={() => (skillTreeOpen = false)} />
+	{/if}
+
 	{#if offlinePopup}
 		<div class="offline-popup" onclick={() => (offlinePopup = null)} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && (offlinePopup = null)}>
 			<span class="offline-title">WELCOME BACK</span>
 			<span class="offline-time">Away for {formatTime(offlinePopup.seconds)}</span>
 			<span class="offline-earned">+{formatNumber(offlinePopup.energy)} energy</span>
+			{#if offlinePopup.flux > 0}
+				<span class="offline-earned" style="color: #ff44aa;">+{formatNumber(offlinePopup.flux)} flux</span>
+			{/if}
+			{#if offlinePopup.prisms > 0}
+				<span class="offline-earned" style="color: #aa44ff;">+{formatNumber(offlinePopup.prisms)} prisms</span>
+			{/if}
 			<span class="offline-dismiss">click to dismiss</span>
 		</div>
 	{/if}
 
 	<div class="hud">
-		<div class="resource-display">
-			<span class="resource-label">ENERGY</span>
-			<span class="resource-value">{formatNumber(gameState.resources.energy)}</span>
-			<span class="resource-rate">+{formatNumber(production)}/s</span>
+		<div class="resources-row">
+			{#each unlockedResources as res}
+				<div class="resource-display">
+					<span class="resource-label" style="color: {res.color};">{res.icon} {res.name.toUpperCase()}</span>
+					<span class="resource-value" style="color: {res.color};">{formatNumber(gameState.resources[res.key])}</span>
+					<span class="resource-rate">+{formatNumber(production[res.key])}/s</span>
+				</div>
+			{/each}
 		</div>
 		<div class="stats">
 			<span>{gameState.coreShape.type} ({gameState.coreShape.sides} sides)</span>
@@ -83,6 +107,8 @@
 		</div>
 		<div class="side-panel">
 			<ShopPanel />
+			<ComboPanel />
+			<SkillPanel bind:open={skillTreeOpen} />
 			<PrestigeButton />
 		</div>
 	</div>
@@ -118,24 +144,24 @@
 	}
 
 	.offline-title {
-		font-size: 0.55rem;
+		font-size: 0.7rem;
 		color: var(--color-gold);
 		letter-spacing: 3px;
 	}
 
 	.offline-time {
-		font-size: 0.35rem;
+		font-size: 0.5rem;
 		color: var(--color-text-dim);
 	}
 
 	.offline-earned {
-		font-size: 0.7rem;
+		font-size: 0.8rem;
 		color: var(--color-green);
 		text-shadow: 0 0 10px rgba(68, 255, 136, 0.4);
 	}
 
 	.offline-dismiss {
-		font-size: 0.25rem;
+		font-size: 0.45rem;
 		color: var(--color-text-dim);
 		opacity: 0.5;
 		margin-top: 0.3rem;
@@ -150,6 +176,11 @@
 		flex-shrink: 0;
 	}
 
+	.resources-row {
+		display: flex;
+		gap: 1.2rem;
+	}
+
 	.resource-display {
 		display: flex;
 		flex-direction: column;
@@ -157,7 +188,7 @@
 	}
 
 	.resource-label {
-		font-size: 0.45rem;
+		font-size: 0.55rem;
 		color: var(--color-text-dim);
 		letter-spacing: 2px;
 	}
@@ -169,7 +200,7 @@
 	}
 
 	.resource-rate {
-		font-size: 0.4rem;
+		font-size: 0.5rem;
 		color: var(--color-green);
 	}
 
@@ -177,7 +208,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.15rem;
-		font-size: 0.4rem;
+		font-size: 0.5rem;
 		color: var(--color-text-dim);
 		text-align: right;
 	}
@@ -208,6 +239,9 @@
 		flex-direction: column;
 		gap: 0.6rem;
 		flex-shrink: 0;
+		overflow-y: auto;
+		max-height: 100%;
+		width: 300px;
 	}
 
 	@keyframes popup-in {

@@ -61,19 +61,19 @@
 	}
 
 	.prestige-title {
-		font-size: 0.5rem;
+		font-size: 0.65rem;
 		color: var(--color-gold);
 		letter-spacing: 3px;
 		text-shadow: 0 0 10px rgba(255, 204, 68, 0.5);
 	}
 
 	.prestige-desc {
-		font-size: 0.35rem;
+		font-size: 0.5rem;
 		color: var(--color-text);
 	}
 
 	.prestige-warning {
-		font-size: 0.3rem;
+		font-size: 0.45rem;
 		color: var(--color-red);
 		opacity: 0.7;
 	}
@@ -87,7 +87,7 @@
 	}
 
 	.prestige-req {
-		font-size: 0.3rem;
+		font-size: 0.5rem;
 		color: var(--color-text-dim);
 		text-align: center;
 	}
@@ -109,7 +109,7 @@
 	}
 
 	.prestige-percent {
-		font-size: 0.28rem;
+		font-size: 0.45rem;
 		color: var(--color-gold);
 		text-align: center;
 		opacity: 0.6;

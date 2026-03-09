@@ -1,10 +1,28 @@
 <script>
-	import { gameState, placeShape, canAffordShape, getNodeProduction, getNodeDepth } from '$lib/game/state.svelte.js';
+	import { onMount } from 'svelte';
+	import { gameState, placeShape, canAffordShape, addResource, getNodeProduction, getNodeDepth, getBuffZones, getClickValue, getTierLevel } from '$lib/game/state.svelte.js';
 	import { buildGeometryTree, getOpenSlots, verticesToString, getPolygonPointsString } from '$lib/game/shapes.js';
+	import { getZoneBonus } from '$lib/game/buffzones.js';
+	import { playClick } from '$lib/game/audio.js';
+	import { formatNumber } from '$lib/utils/format.js';
 
 	const CORE_RADIUS = 50;
+	let svgEl = $state(null);
+
+	onMount(() => {
+		if (svgEl) {
+			svgEl.addEventListener('wheel', handleWheel, { passive: false });
+			return () => svgEl.removeEventListener('wheel', handleWheel);
+		}
+	});
 
 	let pulseCore = $state(false);
+	let hoveredNode = $state(null);
+	let panX = $state(0);
+	let panY = $state(0);
+	let zoom = $state(1);
+	let isPanning = $state(false);
+	let lastMouse = $state({ x: 0, y: 0 });
 
 	let geometry = $derived(
 		buildGeometryTree(gameState.nodes, gameState.coreShape.sides, CORE_RADIUS)
@@ -14,12 +32,10 @@
 		getOpenSlots(gameState.nodes, gameState.coreShape.sides, CORE_RADIUS)
 	);
 
-	let maxSlotLayer = $derived(
-		Math.max(1, ...openSlots.map((s) => s.layer))
-	);
+	let buffZones = $derived(getBuffZones());
 
 	let bounds = $derived.by(() => {
-		let minX = -80, maxX = 80, minY = -80, maxY = 80;
+		let minX = -100, maxX = 100, minY = -100, maxY = 100;
 		for (const g of geometry) {
 			for (const v of g.vertices) {
 				minX = Math.min(minX, v.x);
@@ -36,13 +52,21 @@
 				maxY = Math.max(maxY, v.y);
 			}
 		}
-		const pad = 40;
+		const pad = 60;
 		return {
 			x: minX - pad,
 			y: minY - pad,
 			w: maxX - minX + pad * 2,
 			h: maxY - minY + pad * 2
 		};
+	});
+
+	let viewBox = $derived.by(() => {
+		const cx = (bounds.x + bounds.w / 2) - panX;
+		const cy = (bounds.y + bounds.h / 2) - panY;
+		const w = bounds.w / zoom;
+		const h = bounds.h / zoom;
+		return `${cx - w / 2} ${cy - h / 2} ${w} ${h}`;
 	});
 
 	let flowParticles = $derived(
@@ -58,11 +82,15 @@
 	);
 
 	let fogCircles = $derived(
-		geometry.map((g) => ({
-			cx: g.center.x,
-			cy: g.center.y,
-			r: g.isCore ? 90 : 60 + (g.node.level * 5)
-		}))
+		geometry.map((g) => {
+			const depth = g.isCore ? 0 : getNodeDepth(g.node.id);
+			const tierLvl = g.isCore ? 1 : getTierLevel(depth);
+			return {
+				cx: g.center.x,
+				cy: g.center.y,
+				r: g.isCore ? 100 : 65 + (tierLvl * 8)
+			};
+		})
 	);
 
 	function handleCoreClick(e) {
@@ -70,8 +98,8 @@
 		e.stopPropagation();
 		pulseCore = true;
 		setTimeout(() => (pulseCore = false), 150);
-		gameState.resources.energy += 1;
-		gameState.stats.totalEnergyEarned += 1;
+		addResource('energy', getClickValue());
+		playClick();
 	}
 
 	function handleSlotClick(e, slot) {
@@ -80,6 +108,34 @@
 		if (canAffordShape()) {
 			placeShape(slot.parentId, slot.edgeIndex);
 		}
+	}
+
+	function handleWheel(e) {
+		e.preventDefault();
+		const delta = e.deltaY > 0 ? 0.9 : 1.1;
+		zoom = Math.max(0.3, Math.min(5, zoom * delta));
+	}
+
+	function handleMouseDown(e) {
+		if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+			isPanning = true;
+			lastMouse = { x: e.clientX, y: e.clientY };
+			e.preventDefault();
+		}
+	}
+
+	function handleMouseMove(e) {
+		if (isPanning) {
+			const dx = e.clientX - lastMouse.x;
+			const dy = e.clientY - lastMouse.y;
+			panX += dx * 0.5 / zoom;
+			panY += dy * 0.5 / zoom;
+			lastMouse = { x: e.clientX, y: e.clientY };
+		}
+	}
+
+	function handleMouseUp() {
+		isPanning = false;
 	}
 
 	function getLayerColor(layer) {
@@ -91,30 +147,86 @@
 		const color = getLayerColor(layer);
 		return `drop-shadow(0 0 4px ${color}66)`;
 	}
+
+	function handleShapeHover(geo) {
+		const prod = getNodeProduction(geo.node.id);
+		const depth = getNodeDepth(geo.node.id);
+		const tierLvl = getTierLevel(depth);
+		const zoneBonus = getZoneBonus(geo.center, buffZones);
+		hoveredNode = {
+			x: geo.center.x,
+			y: geo.center.y - 20,
+			name: `Tier ${depth}`,
+			level: tierLvl,
+			production: prod,
+			zoneBonus,
+			id: geo.node.id
+		};
+	}
 </script>
 
 <svg
-	viewBox="{bounds.x} {bounds.y} {bounds.w} {bounds.h}"
+	bind:this={svgEl}
+	{viewBox}
 	class="shape-network"
 	xmlns="http://www.w3.org/2000/svg"
 	preserveAspectRatio="xMidYMid meet"
+	onmousedown={handleMouseDown}
+	onmousemove={handleMouseMove}
+	onmouseup={handleMouseUp}
+	onmouseleave={handleMouseUp}
+	role="img"
 >
 	<defs>
 		<mask id="fog-mask">
-			<rect x={bounds.x} y={bounds.y} width={bounds.w} height={bounds.h} fill="black" />
+			<rect x={bounds.x - 200} y={bounds.y - 200} width={bounds.w + 400} height={bounds.h + 400} fill="black" />
 			{#each fogCircles as fog}
-				<circle cx={fog.cx} cy={fog.cy} r={fog.r} fill="white" />
+				<radialGradient id="fog-grad-{fog.cx.toFixed(0)}-{fog.cy.toFixed(0)}" cx="50%" cy="50%" r="50%">
+					<stop offset="0%" stop-color="white" stop-opacity="1" />
+					<stop offset="70%" stop-color="white" stop-opacity="0.8" />
+					<stop offset="100%" stop-color="white" stop-opacity="0" />
+				</radialGradient>
+				<circle
+					cx={fog.cx} cy={fog.cy} r={fog.r}
+					fill="url(#fog-grad-{fog.cx.toFixed(0)}-{fog.cy.toFixed(0)})"
+				/>
 			{/each}
 		</mask>
 	</defs>
 
 	<rect
-		x={bounds.x} y={bounds.y}
-		width={bounds.w} height={bounds.h}
-		fill="rgba(15, 15, 35, 0.6)"
+		x={bounds.x - 200} y={bounds.y - 200}
+		width={bounds.w + 400} height={bounds.h + 400}
+		fill="rgba(8, 8, 20, 0.7)"
 		mask="url(#fog-mask)"
 		class="fog-overlay"
 	/>
+
+	{#each buffZones as zone}
+		<circle
+			cx={zone.x} cy={zone.y} r={zone.radius}
+			fill="{zone.color}08"
+			stroke={zone.color}
+			stroke-width="0.8"
+			stroke-dasharray="6 4"
+			opacity="0.4"
+			class="buff-zone"
+		/>
+		<text
+			x={zone.x} y={zone.y - zone.radius - 5}
+			class="zone-label"
+			fill={zone.color}
+		>
+			{zone.icon} {zone.name}
+		</text>
+		<text
+			x={zone.x} y={zone.y + 3}
+			class="zone-desc"
+			fill={zone.color}
+		>
+			{zone.description}
+		</text>
+	{/each}
 
 	{#each flowParticles as flow (flow.id)}
 		<line
@@ -122,9 +234,9 @@
 			x2={flow.x2} y2={flow.y2}
 			class="flow-line"
 		/>
-		<circle r="2" class="flow-particle">
+		<circle r="1.5" class="flow-particle">
 			<animateMotion
-				dur="{1.5 + Math.random()}s"
+				dur="{1.2 + Math.random() * 0.8}s"
 				repeatCount="indefinite"
 				path="M{flow.x1},{flow.y1} L{flow.x2},{flow.y2}"
 			/>
@@ -136,7 +248,6 @@
 			points={verticesToString(slot.vertices)}
 			class="empty-slot"
 			class:affordable={canAffordShape()}
-			class:next-layer={slot.layer <= maxSlotLayer}
 			onclick={(e) => handleSlotClick(e, slot)}
 			onkeydown={(e) => e.key === 'Enter' && handleSlotClick(e, slot)}
 			role="button"
@@ -170,10 +281,15 @@
 		{:else}
 			{@const depth = getNodeDepth(geo.node.id)}
 			{@const color = getLayerColor(depth)}
+			{@const tierLvl = getTierLevel(depth)}
+			{@const inZone = getZoneBonus(geo.center, buffZones) > 1}
 			<polygon
 				points={verticesToString(geo.vertices)}
 				class="placed-shape"
+				class:in-zone={inZone}
 				style="stroke: {color}; filter: {getLayerGlow(depth)};"
+				onmouseenter={() => handleShapeHover(geo)}
+				onmouseleave={() => (hoveredNode = null)}
 			/>
 			<text
 				x={geo.center.x}
@@ -181,12 +297,30 @@
 				class="shape-level"
 				style="fill: {color};"
 			>
-				{geo.node.level}
+				{tierLvl}
 			</text>
 		{/if}
 	{/each}
-</svg>
 
+	{#if hoveredNode}
+		<g class="tooltip" transform="translate({hoveredNode.x}, {hoveredNode.y})">
+			<rect
+				x="-55" y="-28" width="110" height="32" rx="3"
+				fill="var(--color-surface)" stroke="var(--color-border)" stroke-width="0.5"
+			/>
+			<text x="0" y="-16" class="tooltip-title">{hoveredNode.name} Lv.{hoveredNode.level}</text>
+			<text x="0" y="-6" class="tooltip-prod">{formatNumber(hoveredNode.production)}/s</text>
+			{#if hoveredNode.zoneBonus > 1}
+				<text x="0" y="2" class="tooltip-zone">Zone: {hoveredNode.zoneBonus}x</text>
+			{/if}
+		</g>
+	{/if}
+
+	<text
+		x={bounds.x + 8} y={bounds.y + 14}
+		class="controls-hint"
+	>scroll to zoom · shift+drag to pan</text>
+</svg>
 
 <style>
 	.shape-network {
@@ -194,21 +328,46 @@
 		height: 100%;
 		max-width: 100%;
 		max-height: 100%;
+		cursor: grab;
+	}
+
+	.shape-network:active {
+		cursor: grabbing;
 	}
 
 	.fog-overlay {
 		pointer-events: none;
 	}
 
+	.buff-zone {
+		pointer-events: none;
+		animation: zone-pulse 4s ease-in-out infinite;
+	}
+
+	.zone-label {
+		font-family: var(--font-pixel);
+		font-size: 5px;
+		text-anchor: middle;
+		pointer-events: none;
+	}
+
+	.zone-desc {
+		font-family: var(--font-pixel);
+		font-size: 4px;
+		text-anchor: middle;
+		pointer-events: none;
+		opacity: 0.6;
+	}
+
 	.flow-line {
 		stroke: var(--color-accent);
 		stroke-width: 0.5;
-		opacity: 0.15;
+		opacity: 0.12;
 	}
 
 	.flow-particle {
 		fill: var(--color-accent);
-		opacity: 0.7;
+		opacity: 0.6;
 	}
 
 	.core {
@@ -226,10 +385,17 @@
 		cursor: pointer;
 		filter: drop-shadow(0 0 10px var(--color-accent-glow));
 		transition: filter 0.2s;
+		outline: none;
 	}
 
 	.core-polygon:hover {
 		filter: drop-shadow(0 0 20px var(--color-accent));
+	}
+
+	.core-polygon:focus-visible {
+		stroke: var(--color-gold);
+		stroke-width: 3;
+		filter: drop-shadow(0 0 15px var(--color-gold));
 	}
 
 	.core-inner {
@@ -252,6 +418,11 @@
 		fill: var(--color-surface);
 		stroke-width: 1.5;
 		transition: filter 0.3s;
+		cursor: default;
+	}
+
+	.placed-shape.in-zone {
+		fill: rgba(30, 30, 60, 0.9);
 	}
 
 	.shape-level {
@@ -264,37 +435,70 @@
 	.empty-slot {
 		fill: transparent;
 		stroke: var(--color-text-dim);
-		stroke-width: 0.8;
-		stroke-dasharray: 3 3;
-		opacity: 0.15;
+		stroke-width: 1.2;
+		stroke-dasharray: 4 3;
+		opacity: 0.3;
 		cursor: not-allowed;
 		transition: all 0.2s;
+		outline: none;
 	}
 
 	.empty-slot.affordable {
 		stroke: var(--color-gold);
-		opacity: 0.4;
+		opacity: 0.55;
 		cursor: pointer;
 		animation: slot-glow 2s ease-in-out infinite;
 	}
 
 	.empty-slot.affordable:hover {
-		opacity: 0.9;
+		opacity: 0.95;
 		fill: rgba(255, 204, 68, 0.08);
 	}
 
 	.slot-plus {
 		fill: var(--color-text-dim);
 		font-family: var(--font-pixel);
-		font-size: 6px;
+		font-size: 7px;
 		text-anchor: middle;
 		pointer-events: none;
-		opacity: 0.2;
+		opacity: 0.3;
 	}
 
 	.slot-plus.affordable {
 		fill: var(--color-gold);
-		opacity: 0.5;
+		opacity: 0.6;
+	}
+
+	.tooltip {
+		pointer-events: none;
+	}
+
+	.tooltip-title {
+		font-family: var(--font-pixel);
+		font-size: 4px;
+		fill: var(--color-text);
+		text-anchor: middle;
+	}
+
+	.tooltip-prod {
+		font-family: var(--font-pixel);
+		font-size: 4px;
+		fill: var(--color-green);
+		text-anchor: middle;
+	}
+
+	.tooltip-zone {
+		font-family: var(--font-pixel);
+		font-size: 3.5px;
+		fill: var(--color-gold);
+		text-anchor: middle;
+	}
+
+	.controls-hint {
+		font-family: var(--font-pixel);
+		font-size: 4px;
+		fill: var(--color-text-dim);
+		opacity: 0.3;
 	}
 
 	@keyframes core-pulse {
@@ -304,7 +508,12 @@
 	}
 
 	@keyframes slot-glow {
-		0%, 100% { opacity: 0.25; }
+		0%, 100% { opacity: 0.2; }
+		50% { opacity: 0.45; }
+	}
+
+	@keyframes zone-pulse {
+		0%, 100% { opacity: 0.3; }
 		50% { opacity: 0.5; }
 	}
 </style>

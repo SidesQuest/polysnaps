@@ -1,20 +1,18 @@
 <script>
-	import { gameState, canAffordShape, getNextShapeCost, getPlacedCount, getTotalProduction, upgradeNode, getUpgradeCost, getNodeProduction, getNodeDepth } from '$lib/game/state.svelte.js';
+	import { gameState, canAffordShape, getNextShapeCost, getPlacedCount, getProductionByResource, getUnlockedResources, getTierUpgradeCost, upgradeTier, getTierLevel, getTierInfo } from '$lib/game/state.svelte.js';
 	import { getOpenSlots } from '$lib/game/shapes.js';
 	import { SHAPE_DEFS } from '$lib/game/shapes.js';
 	import { formatNumber } from '$lib/utils/format.js';
 
 	let nextCost = $derived(getNextShapeCost());
 	let affordable = $derived(canAffordShape());
-	let totalProd = $derived(getTotalProduction());
+	let prodByResource = $derived(getProductionByResource());
+	let unlockedResources = $derived(getUnlockedResources());
 	let placed = $derived(getPlacedCount());
 	let openSlotCount = $derived(
 		getOpenSlots(gameState.nodes, gameState.coreShape.sides, 50).length
 	);
-
-	let upgradableNodes = $derived(
-		gameState.nodes.filter((n) => n.id !== 'core').slice().reverse()
-	);
+	let tiers = $derived(getTierInfo());
 
 	function getLayerColor(depth) {
 		const colors = ['#44aaff', '#44ff88', '#ffcc44', '#ff44aa', '#aa44ff', '#44ffff'];
@@ -25,69 +23,59 @@
 <div class="shop-panel">
 	<div class="panel-header">
 		<span class="panel-title">SHOP</span>
+		<span class="shape-count">{placed} shapes · {openSlotCount} open</span>
 	</div>
 
 	<div class="panel-content">
 		<div class="production-summary">
-			<span class="prod-label">PRODUCTION</span>
-			<span class="prod-value">{formatNumber(totalProd)}/s</span>
-		</div>
-
-		<div class="stat-row">
-			<span>Shapes placed</span>
-			<span>{placed}</span>
-		</div>
-		<div class="stat-row">
-			<span>Open slots</span>
-			<span>{openSlotCount}</span>
-		</div>
-
-		<div class="buy-section">
-			<span class="section-title">PLACE</span>
-			<button
-				class="buy-button"
-				disabled={!affordable || openSlotCount === 0}
-				onclick={() => {}}
-			>
-				<span class="buy-shape-name">
-					{SHAPE_DEFS.triangle.name}
-				</span>
-				<span class="buy-cost" class:can-afford={affordable}>
-					{formatNumber(nextCost)} energy
-				</span>
-				<span class="buy-info">
-					Click an empty slot on the map to place
-				</span>
-			</button>
-		</div>
-
-		{#if upgradableNodes.length > 0}
-			<div class="upgrade-section">
-				<span class="section-title">UPGRADES</span>
-				<div class="upgrade-list">
-					{#each upgradableNodes as node}
-						{@const cost = getUpgradeCost(node)}
-						{@const canUpgrade = gameState.resources.energy >= cost}
-						{@const depth = getNodeDepth(node.id)}
-						{@const prod = getNodeProduction(node.id)}
-						{@const color = getLayerColor(depth)}
-						<button
-							class="upgrade-button"
-							onclick={() => upgradeNode(node.id)}
-							disabled={!canUpgrade}
-						>
-							<div class="upgrade-header">
-								<span class="upgrade-name" style="color: {color};">
-									L{depth} #{node.id.split('-')[1]} — Lv.{node.level}
-								</span>
-								<span class="upgrade-prod">{formatNumber(prod)}/s</span>
-							</div>
-							<span class="upgrade-cost" class:can-afford={canUpgrade}>
-								{formatNumber(cost)} energy → Lv.{node.level + 1}
-							</span>
-						</button>
-					{/each}
+			{#each unlockedResources as res}
+				<div class="prod-row">
+					<span class="prod-icon" style="color: {res.color};">{res.icon}</span>
+					<span class="prod-value" style="color: {res.color};">
+						{formatNumber(prodByResource[res.key])}/s
+					</span>
 				</div>
+			{/each}
+		</div>
+
+		<div class="place-row">
+			<div class="place-info">
+				<span class="place-label">▲ PLACE</span>
+				<span class="place-hint">click empty slot on map</span>
+			</div>
+			<span class="place-cost" class:affordable>
+				{formatNumber(nextCost)}
+			</span>
+		</div>
+
+		{#if tiers.length > 0}
+			<div class="tier-section">
+				<span class="section-label">TIER UPGRADES</span>
+				{#each tiers as info}
+					{@const tierLvl = getTierLevel(info.tier)}
+					{@const cost = getTierUpgradeCost(info.tier)}
+					{@const canUp = gameState.resources.energy >= cost}
+					{@const color = getLayerColor(info.tier)}
+					<button
+						class="tier-row"
+						onclick={() => upgradeTier(info.tier)}
+						disabled={!canUp}
+					>
+						<div class="tier-left">
+							<span class="tier-dot" style="background: {color};"></span>
+							<div class="tier-meta">
+								<span class="tier-name">Tier {info.tier}</span>
+								<span class="tier-detail">{info.count} shapes · {formatNumber(info.totalProd)}/s</span>
+							</div>
+						</div>
+						<div class="tier-right">
+							<span class="tier-level">Lv.{tierLvl}</span>
+							<span class="tier-cost" class:can-afford={canUp}>
+								{formatNumber(cost)}
+							</span>
+						</div>
+					</button>
+				{/each}
 			</div>
 		{/if}
 	</div>
@@ -95,151 +83,182 @@
 
 <style>
 	.shop-panel {
-		width: 260px;
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
 		border-radius: 4px;
 		display: flex;
 		flex-direction: column;
-		max-height: 100%;
 		overflow: hidden;
 	}
 
 	.panel-header {
-		padding: 0.6rem 0.8rem;
+		padding: 0.5rem 0.7rem;
 		border-bottom: 1px solid var(--color-border);
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
 	}
 
 	.panel-title {
-		font-size: 0.55rem;
+		font-size: 0.6rem;
 		color: var(--color-accent);
 		letter-spacing: 3px;
 	}
 
+	.shape-count {
+		font-size: 0.5rem;
+		color: var(--color-text-dim);
+	}
+
 	.panel-content {
-		padding: 0.6rem;
+		padding: 0.5rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: 0.4rem;
 		overflow-y: auto;
 	}
 
 	.production-summary {
 		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.4rem 0.5rem;
-		background: rgba(68, 170, 255, 0.05);
+		gap: 0.6rem;
+		padding: 0.3rem 0.4rem;
+		background: rgba(68, 170, 255, 0.04);
 		border: 1px solid var(--color-border);
 		border-radius: 3px;
 	}
 
-	.prod-label {
-		font-size: 0.35rem;
-		color: var(--color-text-dim);
-		letter-spacing: 2px;
+	.prod-row {
+		display: flex;
+		align-items: center;
+		gap: 0.2rem;
+	}
+
+	.prod-icon {
+		font-size: 0.65rem;
 	}
 
 	.prod-value {
 		font-size: 0.55rem;
-		color: var(--color-green);
 	}
 
-	.stat-row {
-		display: flex;
-		justify-content: space-between;
-		font-size: 0.35rem;
-		color: var(--color-text-dim);
-		padding: 0 0.2rem;
-	}
-
-	.buy-section, .upgrade-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.4rem;
-	}
-
-	.section-title {
-		font-size: 0.35rem;
-		color: var(--color-text-dim);
-		letter-spacing: 2px;
-		padding-top: 0.2rem;
-	}
-
-	.buy-button, .upgrade-button {
-		background: rgba(68, 170, 255, 0.06);
-		border: 1px solid var(--color-border);
-		border-radius: 3px;
-		padding: 0.5rem;
-		cursor: pointer;
-		display: flex;
-		flex-direction: column;
-		gap: 0.2rem;
-		text-align: left;
-		transition: all 0.15s;
-		font-family: var(--font-pixel);
-	}
-
-	.buy-button:not(:disabled):hover,
-	.upgrade-button:not(:disabled):hover {
-		background: rgba(68, 170, 255, 0.12);
-		border-color: var(--color-accent);
-	}
-
-	.buy-button:disabled,
-	.upgrade-button:disabled {
-		opacity: 0.35;
-		cursor: not-allowed;
-	}
-
-	.buy-shape-name {
-		font-size: 0.45rem;
-		color: var(--color-text);
-	}
-
-	.buy-cost {
-		font-size: 0.38rem;
-		color: var(--color-red);
-	}
-
-	.buy-cost.can-afford {
-		color: var(--color-gold);
-	}
-
-	.buy-info {
-		font-size: 0.3rem;
-		color: var(--color-text-dim);
-	}
-
-	.upgrade-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.3rem;
-		max-height: 300px;
-		overflow-y: auto;
-	}
-
-	.upgrade-header {
+	.place-row {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+		padding: 0.35rem 0.4rem;
+		border: 1px solid var(--color-border);
+		border-radius: 3px;
+		background: rgba(68, 170, 255, 0.03);
 	}
 
-	.upgrade-name {
-		font-size: 0.38rem;
+	.place-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.05rem;
 	}
 
-	.upgrade-prod {
-		font-size: 0.32rem;
-		color: var(--color-green);
+	.place-label {
+		font-size: 0.55rem;
+		color: var(--color-text);
 	}
 
-	.upgrade-cost {
-		font-size: 0.32rem;
-		color: var(--color-red);
+	.place-hint {
+		font-size: 0.45rem;
+		color: var(--color-text-dim);
 	}
 
-	.upgrade-cost.can-afford {
+	.place-cost {
+		font-size: 0.55rem;
+		color: var(--color-text-dim);
+	}
+
+	.place-cost.affordable {
+		color: var(--color-gold);
+	}
+
+	.tier-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.section-label {
+		font-size: 0.5rem;
+		color: var(--color-text-dim);
+		letter-spacing: 2px;
+		padding: 0.1rem 0;
+	}
+
+	.tier-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0.35rem 0.4rem;
+		background: rgba(68, 170, 255, 0.03);
+		border: 1px solid var(--color-border);
+		border-radius: 3px;
+		cursor: pointer;
+		font-family: var(--font-pixel);
+		transition: all 0.12s;
+	}
+
+	.tier-row:not(:disabled):hover {
+		background: rgba(68, 170, 255, 0.08);
+		border-color: var(--color-accent);
+	}
+
+	.tier-row:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	.tier-left {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+
+	.tier-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 2px;
+		flex-shrink: 0;
+	}
+
+	.tier-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 0.05rem;
+	}
+
+	.tier-name {
+		font-size: 0.55rem;
+		color: var(--color-text);
+	}
+
+	.tier-detail {
+		font-size: 0.45rem;
+		color: var(--color-text-dim);
+	}
+
+	.tier-right {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.05rem;
+	}
+
+	.tier-level {
+		font-size: 0.5rem;
+		color: var(--color-text);
+	}
+
+	.tier-cost {
+		font-size: 0.5rem;
+		color: var(--color-text-dim);
+	}
+
+	.tier-cost.can-afford {
 		color: var(--color-gold);
 	}
 </style>
