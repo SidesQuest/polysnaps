@@ -145,7 +145,7 @@
 
 	function getLayerGlow(layer) {
 		const color = getLayerColor(layer);
-		return `drop-shadow(0 0 4px ${color}66)`;
+		return `drop-shadow(0 0 2px ${color})`;
 	}
 
 	function handleShapeHover(geo) {
@@ -305,8 +305,8 @@
 	{#if hoveredNode}
 		<g class="tooltip" transform="translate({hoveredNode.x}, {hoveredNode.y})">
 			<rect
-				x="-55" y="-28" width="110" height="32" rx="3"
-				fill="var(--color-surface)" stroke="var(--color-border)" stroke-width="0.5"
+				x="-55" y="-28" width="110" height="32"
+				fill="var(--color-bg)" stroke="var(--color-accent)" stroke-width="1.5"
 			/>
 			<text x="0" y="-16" class="tooltip-title">{hoveredNode.name} Lv.{hoveredNode.level}</text>
 			<text x="0" y="-6" class="tooltip-prod">{formatNumber(hoveredNode.production)}/s</text>
@@ -329,6 +329,7 @@
 		max-width: 100%;
 		max-height: 100%;
 		cursor: grab;
+		shape-rendering: crispEdges;
 	}
 
 	.shape-network:active {
@@ -361,13 +362,14 @@
 
 	.flow-line {
 		stroke: var(--color-accent);
-		stroke-width: 0.5;
-		opacity: 0.12;
+		stroke-width: 1;
+		opacity: 0.1;
+		stroke-dasharray: 2 4;
 	}
 
 	.flow-particle {
 		fill: var(--color-accent);
-		opacity: 0.6;
+		opacity: 0.8;
 	}
 
 	.core {
@@ -379,30 +381,28 @@
 	}
 
 	.core-polygon {
-		fill: var(--color-surface);
+		fill: var(--color-bg);
 		stroke: var(--color-accent);
-		stroke-width: 2;
+		stroke-width: 3;
 		cursor: pointer;
-		filter: drop-shadow(0 0 10px var(--color-accent-glow));
-		transition: filter 0.2s;
 		outline: none;
 	}
 
 	.core-polygon:hover {
-		filter: drop-shadow(0 0 20px var(--color-accent));
+		fill: rgba(85, 187, 255, 0.08);
+		stroke-width: 4;
 	}
 
 	.core-polygon:focus-visible {
 		stroke: var(--color-gold);
-		stroke-width: 3;
-		filter: drop-shadow(0 0 15px var(--color-gold));
+		stroke-width: 4;
 	}
 
 	.core-inner {
 		fill: none;
 		stroke: var(--color-accent);
-		stroke-width: 0.5;
-		opacity: 0.3;
+		stroke-width: 1;
+		opacity: 0.2;
 		pointer-events: none;
 	}
 
@@ -415,14 +415,13 @@
 	}
 
 	.placed-shape {
-		fill: var(--color-surface);
-		stroke-width: 1.5;
-		transition: filter 0.3s;
+		fill: var(--color-bg);
+		stroke-width: 2;
 		cursor: default;
 	}
 
 	.placed-shape.in-zone {
-		fill: rgba(30, 30, 60, 0.9);
+		fill: rgba(20, 20, 50, 0.95);
 	}
 
 	.shape-level {
@@ -434,39 +433,38 @@
 
 	.empty-slot {
 		fill: transparent;
-		stroke: var(--color-text-dim);
-		stroke-width: 1.2;
-		stroke-dasharray: 4 3;
-		opacity: 0.3;
+		stroke: var(--color-border);
+		stroke-width: 1.5;
+		stroke-dasharray: 4 4;
+		opacity: 0.35;
 		cursor: not-allowed;
-		transition: all 0.2s;
 		outline: none;
 	}
 
 	.empty-slot.affordable {
 		stroke: var(--color-gold);
-		opacity: 0.55;
+		opacity: 0.6;
 		cursor: pointer;
-		animation: slot-glow 2s ease-in-out infinite;
+		animation: slot-blink 1.5s steps(2) infinite;
 	}
 
 	.empty-slot.affordable:hover {
-		opacity: 0.95;
-		fill: rgba(255, 204, 68, 0.08);
+		opacity: 1;
+		fill: rgba(255, 221, 85, 0.1);
 	}
 
 	.slot-plus {
 		fill: var(--color-text-dim);
 		font-family: var(--font-pixel);
-		font-size: 7px;
+		font-size: 8px;
 		text-anchor: middle;
 		pointer-events: none;
-		opacity: 0.3;
+		opacity: 0.25;
 	}
 
 	.slot-plus.affordable {
 		fill: var(--color-gold);
-		opacity: 0.6;
+		opacity: 0.7;
 	}
 
 	.tooltip {
@@ -475,21 +473,21 @@
 
 	.tooltip-title {
 		font-family: var(--font-pixel);
-		font-size: 4px;
+		font-size: 5px;
 		fill: var(--color-text);
 		text-anchor: middle;
 	}
 
 	.tooltip-prod {
 		font-family: var(--font-pixel);
-		font-size: 4px;
+		font-size: 4.5px;
 		fill: var(--color-green);
 		text-anchor: middle;
 	}
 
 	.tooltip-zone {
 		font-family: var(--font-pixel);
-		font-size: 3.5px;
+		font-size: 4px;
 		fill: var(--color-gold);
 		text-anchor: middle;
 	}
@@ -507,9 +505,9 @@
 		100% { transform: scale(1); }
 	}
 
-	@keyframes slot-glow {
-		0%, 100% { opacity: 0.2; }
-		50% { opacity: 0.45; }
+	@keyframes slot-blink {
+		0%, 100% { opacity: 0.4; }
+		50% { opacity: 0.8; }
 	}
 
 	@keyframes zone-pulse {

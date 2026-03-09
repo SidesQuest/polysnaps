@@ -43,9 +43,8 @@
 <style>
 	.prestige-button {
 		width: 100%;
-		background: linear-gradient(135deg, rgba(255, 204, 68, 0.15), rgba(255, 204, 68, 0.05));
-		border: 1px solid var(--color-gold);
-		border-radius: 4px;
+		background: var(--color-bg);
+		border: 2px solid var(--color-gold);
 		padding: 0.6rem;
 		cursor: pointer;
 		display: flex;
@@ -53,18 +52,23 @@
 		gap: 0.25rem;
 		text-align: center;
 		font-family: var(--font-pixel);
-		animation: prestige-glow 2s ease-in-out infinite;
+		box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
+		animation: prestige-blink 1.8s steps(2) infinite;
 	}
 
 	.prestige-button:hover {
-		background: linear-gradient(135deg, rgba(255, 204, 68, 0.25), rgba(255, 204, 68, 0.1));
+		background: rgba(255, 221, 85, 0.08);
+	}
+
+	.prestige-button:active {
+		transform: translate(2px, 2px);
+		box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
 	}
 
 	.prestige-title {
 		font-size: 0.65rem;
 		color: var(--color-gold);
-		letter-spacing: 3px;
-		text-shadow: 0 0 10px rgba(255, 204, 68, 0.5);
+		letter-spacing: 4px;
 	}
 
 	.prestige-desc {
@@ -94,18 +98,15 @@
 
 	.prestige-bar-bg {
 		width: 100%;
-		height: 4px;
-		background: var(--color-border);
-		border-radius: 2px;
+		height: 6px;
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
 		overflow: hidden;
 	}
 
 	.prestige-bar-fill {
 		height: 100%;
 		background: var(--color-gold);
-		border-radius: 2px;
-		transition: width 0.3s;
-		box-shadow: 0 0 6px rgba(255, 204, 68, 0.4);
 	}
 
 	.prestige-percent {
@@ -115,8 +116,8 @@
 		opacity: 0.6;
 	}
 
-	@keyframes prestige-glow {
-		0%, 100% { box-shadow: 0 0 5px rgba(255, 204, 68, 0.1); }
-		50% { box-shadow: 0 0 15px rgba(255, 204, 68, 0.3); }
+	@keyframes prestige-blink {
+		0%, 100% { border-color: var(--color-gold); }
+		50% { border-color: rgba(255, 221, 85, 0.4); }
 	}
 </style>

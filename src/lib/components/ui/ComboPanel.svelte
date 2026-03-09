@@ -39,10 +39,10 @@
 
 <style>
 	.combo-panel {
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
+		background: var(--color-bg);
+		border: 2px solid var(--color-border);
 		overflow: hidden;
+		box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
 	}
 
 	.combo-header {
@@ -51,21 +51,21 @@
 		display: flex;
 		align-items: center;
 		gap: 0.4rem;
-		background: none;
+		background: var(--color-surface);
 		border: none;
 		cursor: pointer;
 		font-family: var(--font-pixel);
-		transition: background 0.15s;
+		color: var(--color-text);
 	}
 
 	.combo-header:hover {
-		background: rgba(68, 170, 255, 0.05);
+		background: rgba(85, 187, 255, 0.06);
 	}
 
 	.combo-title {
 		font-size: 0.6rem;
 		color: var(--color-accent);
-		letter-spacing: 2px;
+		letter-spacing: 3px;
 	}
 
 	.combo-count {
@@ -87,7 +87,7 @@
 	.combo-list {
 		display: flex;
 		flex-direction: column;
-		border-top: 1px solid var(--color-border);
+		border-top: 2px solid var(--color-border);
 		max-height: 200px;
 		overflow-y: auto;
 	}
@@ -97,14 +97,13 @@
 		align-items: center;
 		gap: 0.4rem;
 		padding: 0.4rem 0.6rem;
-		border-bottom: 1px solid rgba(42, 42, 74, 0.5);
-		opacity: 0.35;
-		transition: opacity 0.2s;
+		border-bottom: 1px dashed var(--color-border);
+		opacity: 0.3;
 	}
 
 	.combo-item.active {
 		opacity: 1;
-		background: rgba(68, 170, 255, 0.04);
+		background: var(--color-surface);
 	}
 
 	.combo-icon {

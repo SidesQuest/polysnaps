@@ -69,17 +69,22 @@
 		display: flex;
 		align-items: center;
 		gap: 0.4rem;
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
+		background: var(--color-bg);
+		border: 2px solid var(--color-border);
 		cursor: pointer;
 		font-family: var(--font-pixel);
-		transition: all 0.15s;
+		box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
+		color: var(--color-text);
 	}
 
 	.skill-toggle:hover {
 		border-color: #aa44ff;
 		background: rgba(170, 68, 255, 0.06);
+	}
+
+	.skill-toggle:active {
+		transform: translate(2px, 2px);
+		box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
 	}
 
 	.toggle-icon {

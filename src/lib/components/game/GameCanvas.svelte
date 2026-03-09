@@ -129,24 +129,23 @@
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
-		background: var(--color-surface);
-		border: 1px solid var(--color-gold);
-		border-radius: 6px;
+		background: var(--color-bg);
+		border: 3px solid var(--color-gold);
 		padding: 1.5rem 2rem;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.4rem;
+		gap: 0.5rem;
 		z-index: 100;
-		animation: popup-in 0.3s ease-out;
-		box-shadow: 0 0 30px rgba(255, 204, 68, 0.2);
+		animation: popup-in 0.2s steps(4);
+		box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
 		cursor: pointer;
 	}
 
 	.offline-title {
 		font-size: 0.7rem;
 		color: var(--color-gold);
-		letter-spacing: 3px;
+		letter-spacing: 4px;
 	}
 
 	.offline-time {
@@ -157,7 +156,6 @@
 	.offline-earned {
 		font-size: 0.8rem;
 		color: var(--color-green);
-		text-shadow: 0 0 10px rgba(68, 255, 136, 0.4);
 	}
 
 	.offline-dismiss {
@@ -196,7 +194,6 @@
 	.resource-value {
 		font-size: 1.3rem;
 		color: var(--color-accent);
-		text-shadow: 0 0 20px var(--color-accent-glow);
 	}
 
 	.resource-rate {
@@ -215,7 +212,6 @@
 
 	.prestige-badge {
 		color: var(--color-gold);
-		text-shadow: 0 0 8px rgba(255, 204, 68, 0.4);
 	}
 
 	.main-area {
@@ -232,6 +228,21 @@
 		align-items: center;
 		justify-content: center;
 		min-width: 0;
+		background:
+			repeating-linear-gradient(
+				0deg,
+				transparent,
+				transparent 39px,
+				rgba(51, 51, 90, 0.08) 39px,
+				rgba(51, 51, 90, 0.08) 40px
+			),
+			repeating-linear-gradient(
+				90deg,
+				transparent,
+				transparent 39px,
+				rgba(51, 51, 90, 0.08) 39px,
+				rgba(51, 51, 90, 0.08) 40px
+			);
 	}
 
 	.side-panel {

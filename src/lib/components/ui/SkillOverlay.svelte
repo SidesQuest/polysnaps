@@ -173,10 +173,10 @@
 		position: fixed;
 		inset: 0;
 		z-index: 200;
-		background: rgba(5, 5, 15, 0.97);
+		background: rgba(5, 5, 15, 0.98);
 		display: flex;
 		flex-direction: column;
-		animation: overlay-in 0.2s ease-out;
+		animation: overlay-in 0.15s steps(3);
 	}
 
 	.skill-header {
@@ -184,8 +184,9 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		border-bottom: 1px solid var(--color-border);
+		border-bottom: 2px solid var(--color-border);
 		flex-shrink: 0;
+		background: var(--color-surface);
 	}
 
 	.header-left {
@@ -197,7 +198,7 @@
 	.header-title {
 		font-size: 0.8rem;
 		color: #aa44ff;
-		letter-spacing: 4px;
+		letter-spacing: 5px;
 		font-family: var(--font-pixel);
 	}
 
@@ -208,20 +209,24 @@
 	}
 
 	.close-btn {
-		background: none;
-		border: 1px solid var(--color-border);
+		background: var(--color-bg);
+		border: 2px solid var(--color-border);
 		color: var(--color-text-dim);
 		font-size: 1rem;
 		cursor: pointer;
 		padding: 0.4rem 0.7rem;
-		border-radius: 3px;
 		font-family: var(--font-pixel);
-		transition: all 0.15s;
+		box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
 	}
 
 	.close-btn:hover {
-		color: var(--color-text);
-		border-color: var(--color-text);
+		color: var(--color-red);
+		border-color: var(--color-red);
+	}
+
+	.close-btn:active {
+		transform: translate(1px, 1px);
+		box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
 	}
 
 	.skill-canvas {
@@ -243,19 +248,18 @@
 		max-width: 700px;
 		max-height: 600px;
 		overflow: visible;
+		shape-rendering: crispEdges;
 	}
 
 	.skill-edge {
 		stroke: var(--color-border);
 		stroke-width: 2;
 		opacity: 0.3;
-		transition: all 0.3s;
 	}
 
 	.skill-edge.active {
 		stroke: #aa44ff;
 		opacity: 0.7;
-		filter: drop-shadow(0 0 4px rgba(170, 68, 255, 0.4));
 	}
 
 	.skill-edge.foggy {
@@ -265,56 +269,53 @@
 
 	.skill-node-g {
 		cursor: pointer;
-		transition: transform 0.15s;
 	}
 
 	.skill-node-g:hover {
-		transform: scale(1.12);
+		filter: brightness(1.3);
 	}
 
 	.skill-node-g.foggy {
 		cursor: default;
-		opacity: 0.2;
-		filter: blur(1px);
+		opacity: 0.15;
 	}
 
 	.skill-node-g.foggy:hover {
-		transform: none;
+		filter: none;
 	}
 
 	.node-bg {
-		fill: rgba(20, 20, 40, 0.9);
+		fill: var(--color-bg);
 		stroke: var(--color-border);
-		stroke-width: 2;
-		transition: all 0.2s;
+		stroke-width: 3;
 	}
 
 	.foggy-bg {
-		fill: rgba(15, 15, 30, 0.5);
-		stroke: rgba(80, 80, 120, 0.2);
-		stroke-dasharray: 3 4;
+		fill: rgba(10, 10, 20, 0.5);
+		stroke: rgba(80, 80, 120, 0.15);
+		stroke-dasharray: 4 4;
 	}
 
 	.node-bg.node-unlocked {
 		stroke: #aa44ff;
-		fill: rgba(170, 68, 255, 0.1);
+		fill: rgba(170, 68, 255, 0.12);
 	}
 
 	.node-bg.node-maxed {
 		stroke: var(--color-gold);
-		fill: rgba(255, 204, 68, 0.08);
+		fill: rgba(255, 221, 85, 0.08);
 	}
 
 	.skill-node-g.can-unlock .node-bg {
 		stroke: #aa44ff;
-		animation: node-pulse 2s ease-in-out infinite;
+		animation: node-blink 1.5s steps(2) infinite;
 	}
 
 	.node-glow {
 		fill: none;
 		stroke: #aa44ff;
-		stroke-width: 1;
-		opacity: 0.25;
+		stroke-width: 2;
+		opacity: 0.2;
 		pointer-events: none;
 	}
 
@@ -328,8 +329,9 @@
 		font-size: 16px;
 		fill: var(--color-text-dim);
 		text-anchor: middle;
-		opacity: 0.3;
+		opacity: 0.25;
 		pointer-events: none;
+		font-family: var(--font-pixel);
 	}
 
 	.node-level {
@@ -353,17 +355,17 @@
 		bottom: 2rem;
 		left: 50%;
 		transform: translateX(-50%);
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
+		background: var(--color-bg);
+		border: 2px solid #aa44ff;
 		padding: 0.8rem 1.2rem;
 		display: flex;
 		flex-direction: column;
 		gap: 0.2rem;
 		min-width: 220px;
-		animation: tt-in 0.15s ease-out;
+		animation: tt-in 0.1s steps(2);
 		z-index: 210;
 		font-family: var(--font-pixel);
+		box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
 	}
 
 	.tt-header {
@@ -403,13 +405,12 @@
 	.tt-maxed {
 		font-size: 0.55rem;
 		color: var(--color-gold);
-		letter-spacing: 2px;
+		letter-spacing: 3px;
 	}
 
 	.tt-req {
 		font-size: 0.45rem;
-		color: #ff6666;
-		font-style: italic;
+		color: var(--color-red);
 	}
 
 	@keyframes overlay-in {
@@ -418,12 +419,12 @@
 	}
 
 	@keyframes tt-in {
-		from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+		from { opacity: 0; transform: translateX(-50%) translateY(4px); }
 		to { opacity: 1; transform: translateX(-50%) translateY(0); }
 	}
 
-	@keyframes node-pulse {
-		0%, 100% { stroke-opacity: 0.5; }
+	@keyframes node-blink {
+		0%, 100% { stroke-opacity: 0.4; }
 		50% { stroke-opacity: 1; }
 	}
 </style>

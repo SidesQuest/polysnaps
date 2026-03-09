@@ -83,26 +83,27 @@
 
 <style>
 	.shop-panel {
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
+		background: var(--color-bg);
+		border: 2px solid var(--color-border);
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
+		box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
 	}
 
 	.panel-header {
 		padding: 0.5rem 0.7rem;
-		border-bottom: 1px solid var(--color-border);
+		border-bottom: 2px solid var(--color-border);
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+		background: var(--color-surface);
 	}
 
 	.panel-title {
 		font-size: 0.6rem;
 		color: var(--color-accent);
-		letter-spacing: 3px;
+		letter-spacing: 4px;
 	}
 
 	.shape-count {
@@ -121,10 +122,9 @@
 	.production-summary {
 		display: flex;
 		gap: 0.6rem;
-		padding: 0.3rem 0.4rem;
-		background: rgba(68, 170, 255, 0.04);
-		border: 1px solid var(--color-border);
-		border-radius: 3px;
+		padding: 0.35rem 0.4rem;
+		background: var(--color-surface);
+		border: 2px solid var(--color-border);
 	}
 
 	.prod-row {
@@ -146,9 +146,8 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: 0.35rem 0.4rem;
-		border: 1px solid var(--color-border);
-		border-radius: 3px;
-		background: rgba(68, 170, 255, 0.03);
+		border: 2px solid var(--color-border);
+		background: var(--color-surface);
 	}
 
 	.place-info {
@@ -185,8 +184,9 @@
 	.section-label {
 		font-size: 0.5rem;
 		color: var(--color-text-dim);
-		letter-spacing: 2px;
-		padding: 0.1rem 0;
+		letter-spacing: 3px;
+		padding: 0.15rem 0;
+		border-bottom: 1px dashed var(--color-border);
 	}
 
 	.tier-row {
@@ -194,21 +194,24 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: 0.35rem 0.4rem;
-		background: rgba(68, 170, 255, 0.03);
-		border: 1px solid var(--color-border);
-		border-radius: 3px;
+		background: var(--color-surface);
+		border: 2px solid var(--color-border);
 		cursor: pointer;
 		font-family: var(--font-pixel);
-		transition: all 0.12s;
+		color: var(--color-text);
 	}
 
 	.tier-row:not(:disabled):hover {
-		background: rgba(68, 170, 255, 0.08);
+		background: rgba(85, 187, 255, 0.08);
 		border-color: var(--color-accent);
 	}
 
+	.tier-row:not(:disabled):active {
+		transform: translate(1px, 1px);
+	}
+
 	.tier-row:disabled {
-		opacity: 0.4;
+		opacity: 0.35;
 		cursor: not-allowed;
 	}
 
@@ -221,7 +224,6 @@
 	.tier-dot {
 		width: 8px;
 		height: 8px;
-		border-radius: 2px;
 		flex-shrink: 0;
 	}
 
