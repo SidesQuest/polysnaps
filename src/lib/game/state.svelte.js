@@ -284,12 +284,30 @@ export function getClickValue() {
   return 1 + getSkillEffect(gameState.skills, "click_bonus");
 }
 
-export function unlockSkill(skillId) {
-  if (!canUnlockSkill(gameState.skills, skillId)) return false;
+export function canAffordSkill(skillId) {
+  const def = getSkillDef(skillId);
+  if (!def) return false;
   const cost = getSkillCost(gameState.skills, skillId);
-  if (gameState.prestige.currency < cost) return false;
+  if (def.costType === "prestige") {
+    return gameState.prestige.currency >= cost;
+  }
+  return (gameState.resources[def.costType] || 0) >= cost;
+}
 
-  gameState.prestige.currency -= cost;
+export function unlockSkill(skillId) {
+  if (!canUnlockSkill(gameState.skills, skillId, gameState.prestige.level))
+    return false;
+  if (!canAffordSkill(skillId)) return false;
+
+  const def = getSkillDef(skillId);
+  const cost = getSkillCost(gameState.skills, skillId);
+
+  if (def.costType === "prestige") {
+    gameState.prestige.currency -= cost;
+  } else {
+    gameState.resources[def.costType] -= cost;
+  }
+
   gameState.skills[skillId] = (gameState.skills[skillId] || 0) + 1;
   playUpgrade();
   return true;
