@@ -1,8 +1,9 @@
 <script>
 	import { gameState, canAffordShape, getNextShapeCost, getPlacedCount, getProductionByResource, getUnlockedResources, getTierUpgradeCost, upgradeTier, getTierLevel, getTierInfo } from '$lib/game/state.svelte.js';
 	import { getOpenSlots } from '$lib/game/shapes.js';
-	import { SHAPE_DEFS } from '$lib/game/shapes.js';
 	import { formatNumber } from '$lib/utils/format.js';
+
+	const TIER_COLORS = ['#44aaff', '#44ff88', '#ffcc44', '#ff44aa', '#aa44ff', '#44ffff'];
 
 	let nextCost = $derived(getNextShapeCost());
 	let affordable = $derived(canAffordShape());
@@ -15,65 +16,45 @@
 	let tiers = $derived(getTierInfo());
 
 	function getLayerColor(depth) {
-		const colors = ['#44aaff', '#44ff88', '#ffcc44', '#ff44aa', '#aa44ff', '#44ffff'];
-		return colors[(depth - 1) % colors.length];
+		return TIER_COLORS[(depth - 1) % TIER_COLORS.length];
 	}
 </script>
 
-<div class="shop-panel">
-	<div class="panel-header">
-		<span class="panel-title">SHOP</span>
-		<span class="shape-count">{placed} shapes · {openSlotCount} open</span>
-	</div>
-
-	<div class="panel-content">
-		<div class="production-summary">
+<div class="shop game-panel">
+	<div class="header game-panel-header">
+		<span class="title">SHOP</span>
+		<div class="rates">
 			{#each unlockedResources as res}
-				<div class="prod-row">
-					<span class="prod-icon" style="color: {res.color};">{res.icon}</span>
-					<span class="prod-value" style="color: {res.color};">
-						{formatNumber(prodByResource[res.key])}/s
-					</span>
-				</div>
+				<span class="rate" style="color: {res.color};">{res.icon} {formatNumber(prodByResource[res.key])}/s</span>
 			{/each}
 		</div>
+	</div>
 
-		<div class="place-row">
-			<div class="place-info">
-				<span class="place-label">▲ PLACE</span>
-				<span class="place-hint">click empty slot on map</span>
-			</div>
-			<span class="place-cost" class:affordable>
-				{formatNumber(nextCost)}
-			</span>
-		</div>
+	<div class="body">
+		<button class="place-btn" class:affordable disabled={!affordable && openSlotCount === 0}>
+			<span class="place-top">▲ PLACE SHAPE</span>
+			<span class="place-info">Cost: {formatNumber(nextCost)} · {placed} placed · {openSlotCount} slots</span>
+		</button>
 
 		{#if tiers.length > 0}
-			<div class="tier-section">
-				<span class="section-label">TIER UPGRADES</span>
+			<div class="tier-header">
+				<span class="tier-title">TIER UPGRADES</span>
+			</div>
+			<div class="tier-grid">
 				{#each tiers as info}
 					{@const tierLvl = getTierLevel(info.tier)}
 					{@const cost = getTierUpgradeCost(info.tier)}
 					{@const canUp = gameState.resources.energy >= cost}
 					{@const color = getLayerColor(info.tier)}
 					<button
-						class="tier-row"
+						class="tier-cell"
 						onclick={() => upgradeTier(info.tier)}
 						disabled={!canUp}
 					>
-						<div class="tier-left">
-							<span class="tier-dot" style="background: {color};"></span>
-							<div class="tier-meta">
-								<span class="tier-name">Tier {info.tier}</span>
-								<span class="tier-detail">{info.count} shapes · {formatNumber(info.totalProd)}/s</span>
-							</div>
-						</div>
-						<div class="tier-right">
-							<span class="tier-level">Lv.{tierLvl}</span>
-							<span class="tier-cost" class:can-afford={canUp}>
-								{formatNumber(cost)}
-							</span>
-						</div>
+						<span class="tier-dot" style="background: {color};"></span>
+						<span class="tier-label">T{info.tier}</span>
+						<span class="tier-lv">Lv{tierLvl}</span>
+						<span class="tier-cost" class:can-afford={canUp}>{formatNumber(cost)}</span>
 					</button>
 				{/each}
 			</div>
@@ -82,182 +63,143 @@
 </div>
 
 <style>
-	.shop-panel {
-		background: var(--color-bg);
-		border: 2px solid var(--color-border);
+	.shop {
 		display: flex;
 		flex-direction: column;
-		overflow: hidden;
-		box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
 	}
 
-	.panel-header {
-		padding: 0.5rem 0.7rem;
-		border-bottom: 2px solid var(--color-border);
-		display: flex;
+	.header {
+		gap: 6px;
 		justify-content: space-between;
-		align-items: center;
-		background: var(--color-surface);
 	}
 
-	.panel-title {
-		font-size: 0.6rem;
+	.title {
+		font-size: 8px;
 		color: var(--color-accent);
-		letter-spacing: 4px;
-	}
-
-	.shape-count {
-		font-size: 0.5rem;
-		color: var(--color-text-dim);
-	}
-
-	.panel-content {
-		padding: 0.5rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.4rem;
-		overflow-y: auto;
-	}
-
-	.production-summary {
-		display: flex;
-		gap: 0.6rem;
-		padding: 0.35rem 0.4rem;
-		background: var(--color-surface);
-		border: 2px solid var(--color-border);
-	}
-
-	.prod-row {
-		display: flex;
-		align-items: center;
-		gap: 0.2rem;
-	}
-
-	.prod-icon {
-		font-size: 0.65rem;
-	}
-
-	.prod-value {
-		font-size: 0.55rem;
-	}
-
-	.place-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.35rem 0.4rem;
-		border: 2px solid var(--color-border);
-		background: var(--color-surface);
-	}
-
-	.place-info {
-		display: flex;
-		flex-direction: column;
-		gap: 0.05rem;
-	}
-
-	.place-label {
-		font-size: 0.55rem;
-		color: var(--color-text);
-	}
-
-	.place-hint {
-		font-size: 0.45rem;
-		color: var(--color-text-dim);
-	}
-
-	.place-cost {
-		font-size: 0.55rem;
-		color: var(--color-text-dim);
-	}
-
-	.place-cost.affordable {
-		color: var(--color-gold);
-	}
-
-	.tier-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.section-label {
-		font-size: 0.5rem;
-		color: var(--color-text-dim);
 		letter-spacing: 3px;
-		padding: 0.15rem 0;
-		border-bottom: 1px dashed var(--color-border);
-	}
-
-	.tier-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.35rem 0.4rem;
-		background: var(--color-surface);
-		border: 2px solid var(--color-border);
-		cursor: pointer;
-		font-family: var(--font-pixel);
-		color: var(--color-text);
-	}
-
-	.tier-row:not(:disabled):hover {
-		background: rgba(85, 187, 255, 0.08);
-		border-color: var(--color-accent);
-	}
-
-	.tier-row:not(:disabled):active {
-		transform: translate(1px, 1px);
-	}
-
-	.tier-row:disabled {
-		opacity: 0.35;
-		cursor: not-allowed;
-	}
-
-	.tier-left {
-		display: flex;
-		align-items: center;
-		gap: 0.35rem;
-	}
-
-	.tier-dot {
-		width: 8px;
-		height: 8px;
 		flex-shrink: 0;
 	}
 
-	.tier-meta {
+	.rates {
+		display: flex;
+		gap: 8px;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+
+	.rate {
+		font-size: 7px;
+		white-space: nowrap;
+	}
+
+	.body {
+		padding: 6px;
 		display: flex;
 		flex-direction: column;
-		gap: 0.05rem;
+		gap: 6px;
 	}
 
-	.tier-name {
-		font-size: 0.55rem;
-		color: var(--color-text);
-	}
-
-	.tier-detail {
-		font-size: 0.45rem;
+	.place-btn {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		padding: 8px;
+		font-family: var(--font-pixel);
 		color: var(--color-text-dim);
+		background: rgba(255, 255, 255, 0.02);
+		border: 1px dashed var(--color-border);
+		border-radius: 3px;
+		cursor: not-allowed;
 	}
 
-	.tier-right {
+	.place-btn.affordable {
+		border: 1px solid var(--color-gold);
+		color: var(--color-gold);
+		cursor: pointer;
+		background: rgba(255, 221, 85, 0.04);
+	}
+
+	.place-btn.affordable:hover {
+		background: rgba(255, 221, 85, 0.1);
+	}
+
+	.place-top {
+		font-size: 8px;
+	}
+
+	.place-info {
+		font-size: 6px;
+		opacity: 0.6;
+	}
+
+	.tier-header {
 		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		gap: 0.05rem;
+		align-items: center;
+		gap: 6px;
 	}
 
-	.tier-level {
-		font-size: 0.5rem;
+	.tier-title {
+		font-size: 7px;
+		color: var(--color-text-dim);
+		letter-spacing: 2px;
+	}
+
+	.tier-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 3px;
+		max-height: 180px;
+		overflow-y: auto;
+	}
+
+	.tier-cell {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding: 5px 6px;
+		background: rgba(255, 255, 255, 0.02);
+		border: 1px solid var(--color-border);
+		border-radius: 2px;
+		font-family: var(--font-pixel);
 		color: var(--color-text);
+		cursor: pointer;
+	}
+
+	.tier-cell:not(:disabled):hover {
+		background: var(--color-surface-hover);
+		border-color: var(--color-border-light);
+	}
+
+	.tier-cell:not(:disabled):active {
+		transform: translate(1px, 1px);
+	}
+
+	.tier-cell:disabled {
+		opacity: 0.3;
+		cursor: not-allowed;
+	}
+
+	.tier-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 1px;
+		flex-shrink: 0;
+	}
+
+	.tier-label {
+		font-size: 7px;
+	}
+
+	.tier-lv {
+		font-size: 6px;
+		color: var(--color-text-dim);
 	}
 
 	.tier-cost {
-		font-size: 0.5rem;
+		font-size: 6px;
 		color: var(--color-text-dim);
+		margin-left: auto;
 	}
 
 	.tier-cost.can-afford {

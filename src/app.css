@@ -2,23 +2,27 @@
 
 :root {
   --color-bg: #0b0b14;
-  --color-surface: #16162e;
-  --color-border: #33335a;
+  --color-surface: #12122a;
+  --color-surface-hover: #1a1a3a;
+  --color-border: #2a2a50;
+  --color-border-light: #3a3a65;
   --color-text: #d8d8ff;
-  --color-text-dim: #7777aa;
+  --color-text-dim: #8888bb;
   --color-accent: #55bbff;
   --color-accent-glow: #55bbff55;
   --color-gold: #ffdd55;
   --color-green: #55ff99;
   --color-red: #ff5577;
   --font-pixel: "Press Start 2P", monospace;
-  --px: 2px;
 }
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+img {
   image-rendering: pixelated;
 }
 
@@ -45,14 +49,13 @@ body::after {
   inset: 0;
   pointer-events: none;
   z-index: 9999;
-  background:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 0, 0, 0.08) 2px,
-      rgba(0, 0, 0, 0.08) 4px
-    );
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.06) 2px,
+    rgba(0, 0, 0, 0.06) 4px
+  );
   mix-blend-mode: multiply;
 }
 
@@ -65,7 +68,7 @@ body::before {
   background: radial-gradient(
     ellipse at center,
     transparent 60%,
-    rgba(0, 0, 0, 0.35) 100%
+    rgba(0, 0, 0, 0.3) 100%
   );
 }
 
@@ -76,10 +79,24 @@ body::before {
   background: var(--color-bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border: 1px solid var(--color-bg);
+  background: var(--color-border-light);
+  border-radius: 3px;
 }
 
 button {
   font-family: var(--font-pixel);
+}
+
+.game-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.game-panel-header {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.02);
 }

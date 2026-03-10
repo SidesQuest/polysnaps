@@ -16,7 +16,7 @@
 </script>
 
 {#if ready}
-	<button class="prestige-button" onclick={handlePrestige}>
+	<button class="prestige-btn game-panel" onclick={handlePrestige}>
 		<span class="prestige-title">PRESTIGE</span>
 		<span class="prestige-desc">
 			Evolve to {nextName} ({nextSides} sides)
@@ -26,98 +26,89 @@
 		</span>
 	</button>
 {:else}
-	<div class="prestige-locked">
+	<div class="prestige-locked game-panel">
 		<span class="prestige-req">
 			PRESTIGE at {formatNumber(threshold)} energy
 		</span>
 		<div class="prestige-bar-bg">
-			<div
-				class="prestige-bar-fill"
-				style="width: {progress}%"
-			></div>
+			<div class="prestige-bar-fill" style="width: {progress}%"></div>
 		</div>
-		<span class="prestige-percent">{progress.toFixed(1)}%</span>
+		<span class="prestige-pct">{progress.toFixed(1)}%</span>
 	</div>
 {/if}
 
 <style>
-	.prestige-button {
+	.prestige-btn {
 		width: 100%;
-		background: var(--color-bg);
-		border: 2px solid var(--color-gold);
-		padding: 0.6rem;
+		padding: 10px;
 		cursor: pointer;
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: 4px;
 		text-align: center;
 		font-family: var(--font-pixel);
-		box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
-		animation: prestige-blink 1.8s steps(2) infinite;
+		border-color: var(--color-gold);
 	}
 
-	.prestige-button:hover {
-		background: rgba(255, 221, 85, 0.08);
+	.prestige-btn:hover {
+		background: var(--color-surface-hover);
 	}
 
-	.prestige-button:active {
-		transform: translate(2px, 2px);
-		box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+	.prestige-btn:active {
+		transform: translate(1px, 1px);
 	}
 
 	.prestige-title {
-		font-size: 0.65rem;
+		font-size: 8px;
 		color: var(--color-gold);
 		letter-spacing: 4px;
 	}
 
 	.prestige-desc {
-		font-size: 0.5rem;
+		font-size: 7px;
 		color: var(--color-text);
 	}
 
 	.prestige-warning {
-		font-size: 0.45rem;
+		font-size: 6px;
 		color: var(--color-red);
 		opacity: 0.7;
 	}
 
 	.prestige-locked {
 		width: 100%;
-		padding: 0.4rem 0.5rem;
+		padding: 8px 10px;
 		display: flex;
 		flex-direction: column;
-		gap: 0.3rem;
+		gap: 5px;
 	}
 
 	.prestige-req {
-		font-size: 0.5rem;
+		font-size: 7px;
 		color: var(--color-text-dim);
 		text-align: center;
 	}
 
 	.prestige-bar-bg {
 		width: 100%;
-		height: 6px;
+		height: 8px;
 		background: var(--color-bg);
 		border: 1px solid var(--color-border);
+		border-radius: 2px;
 		overflow: hidden;
 	}
 
 	.prestige-bar-fill {
 		height: 100%;
-		background: var(--color-gold);
+		background: linear-gradient(90deg, var(--color-accent), var(--color-gold));
+		border-radius: 1px;
+		transition: width 0.3s;
 	}
 
-	.prestige-percent {
-		font-size: 0.45rem;
+	.prestige-pct {
+		font-size: 6px;
 		color: var(--color-gold);
 		text-align: center;
 		opacity: 0.6;
-	}
-
-	@keyframes prestige-blink {
-		0%, 100% { border-color: var(--color-gold); }
-		50% { border-color: rgba(255, 221, 85, 0.4); }
 	}
 </style>

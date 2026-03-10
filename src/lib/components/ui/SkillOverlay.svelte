@@ -115,21 +115,38 @@
 						role="button"
 						tabindex="0"
 					>
-						{#if vis === 'foggy'}
-							<circle r={NODE_R} class="node-bg foggy-bg" />
-							<text y="5" class="foggy-icon">?</text>
-						{:else}
-							<circle r={NODE_R} class="node-bg" class:node-unlocked={level > 0} class:node-maxed={maxed} />
-							{#if level > 0}
-								<circle r={NODE_R + 4} class="node-glow" />
-							{/if}
-							<text y="-2" class="node-icon">{def.icon}</text>
-							{#if level > 0}
-								<text y="16" class="node-level">{level}/{def.maxLevel}</text>
-							{:else}
-								<text y="16" class="node-cost">🔮{cost}</text>
-							{/if}
+					{#if vis === 'foggy'}
+						<circle r={NODE_R} class="node-bg foggy-bg" />
+						<text y="5" class="foggy-icon">?</text>
+					{:else}
+						<circle r={NODE_R} class="node-bg" class:node-unlocked={level > 0} class:node-maxed={maxed} />
+						{#if level > 0}
+							<circle r={NODE_R + 4} class="node-glow" />
 						{/if}
+						{#if def.iconFrame}
+							<image
+								x={-NODE_R + 2} y={-NODE_R + 2}
+								width={(NODE_R - 2) * 2} height={(NODE_R - 2) * 2}
+								href={def.iconFrame}
+								class="node-frame"
+							/>
+						{/if}
+						{#if def.iconPath}
+							<image
+								x={-NODE_R + 6} y={-NODE_R + 6}
+								width={(NODE_R - 6) * 2} height={(NODE_R - 6) * 2}
+								href={def.iconPath}
+								class="node-icon-img"
+							/>
+						{:else}
+							<text y="-2" class="node-icon">{def.icon}</text>
+						{/if}
+						{#if level > 0}
+							<text y={NODE_R + 14} class="node-level">{level}/{def.maxLevel}</text>
+						{:else}
+							<text y={NODE_R + 14} class="node-cost">🔮{cost}</text>
+						{/if}
+					{/if}
 					</g>
 				{/if}
 			{/each}
@@ -144,10 +161,14 @@
 		{@const canDo = canUnlockSkill(gameState.skills, hoveredSkill) && gameState.prestige.currency >= cost}
 		{#if def && vis !== 'foggy'}
 			<div class="skill-tooltip">
-				<div class="tt-header">
+			<div class="tt-header">
+				{#if def.iconPath}
+					<img src={def.iconPath} alt="" class="tt-icon-img" />
+				{:else}
 					<span class="tt-icon">{def.icon}</span>
-					<span class="tt-name">{def.name}</span>
-				</div>
+				{/if}
+				<span class="tt-name">{def.name}</span>
+			</div>
 				<span class="tt-desc">{def.description}</span>
 				<span class="tt-level">Level {level} / {def.maxLevel}</span>
 				{#if level < def.maxLevel}
@@ -172,8 +193,23 @@
 	.skill-overlay {
 		position: fixed;
 		inset: 0;
-		z-index: 200;
-		background: rgba(5, 5, 15, 0.98);
+		z-index: 10000;
+		background:
+			repeating-linear-gradient(
+				0deg,
+				transparent,
+				transparent 39px,
+				rgba(51, 51, 90, 0.04) 39px,
+				rgba(51, 51, 90, 0.04) 40px
+			),
+			repeating-linear-gradient(
+				90deg,
+				transparent,
+				transparent 39px,
+				rgba(51, 51, 90, 0.04) 39px,
+				rgba(51, 51, 90, 0.04) 40px
+			),
+			rgba(5, 5, 15, 0.98);
 		display: flex;
 		flex-direction: column;
 		animation: overlay-in 0.15s steps(3);
@@ -184,9 +220,9 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		border-bottom: 2px solid var(--color-border);
+		border-bottom: 1px solid rgba(51, 51, 90, 0.5);
 		flex-shrink: 0;
-		background: var(--color-surface);
+		background: rgba(22, 22, 46, 0.6);
 	}
 
 	.header-left {
@@ -209,24 +245,23 @@
 	}
 
 	.close-btn {
-		background: var(--color-bg);
-		border: 2px solid var(--color-border);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
 		color: var(--color-text-dim);
 		font-size: 1rem;
 		cursor: pointer;
-		padding: 0.4rem 0.7rem;
+		padding: 6px 10px;
 		font-family: var(--font-pixel);
-		box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
 	}
 
 	.close-btn:hover {
 		color: var(--color-red);
-		border-color: var(--color-red);
+		filter: brightness(1.3);
 	}
 
 	.close-btn:active {
 		transform: translate(1px, 1px);
-		box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
 	}
 
 	.skill-canvas {
@@ -325,6 +360,12 @@
 		pointer-events: none;
 	}
 
+	.node-frame,
+	.node-icon-img {
+		image-rendering: pixelated;
+		pointer-events: none;
+	}
+
 	.foggy-icon {
 		font-size: 16px;
 		fill: var(--color-text-dim);
@@ -355,17 +396,17 @@
 		bottom: 2rem;
 		left: 50%;
 		transform: translateX(-50%);
-		background: var(--color-bg);
-		border: 2px solid #aa44ff;
-		padding: 0.8rem 1.2rem;
+		background: var(--color-surface);
+		border: 1px solid #aa44ff;
+		border-radius: 6px;
+		padding: 12px 16px;
 		display: flex;
 		flex-direction: column;
-		gap: 0.2rem;
+		gap: 4px;
 		min-width: 220px;
-		animation: tt-in 0.1s steps(2);
-		z-index: 210;
+		animation: tt-in 0.1s ease-out;
+		z-index: 10010;
 		font-family: var(--font-pixel);
-		box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
 	}
 
 	.tt-header {
@@ -376,6 +417,12 @@
 
 	.tt-icon {
 		font-size: 1rem;
+	}
+
+	.tt-icon-img {
+		width: 28px;
+		height: 28px;
+		image-rendering: pixelated;
 	}
 
 	.tt-name {

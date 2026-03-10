@@ -8,27 +8,27 @@
 	let expanded = $state(false);
 </script>
 
-<div class="combo-panel">
-	<button class="combo-header" onclick={() => (expanded = !expanded)}>
-		<span class="combo-title">COMBOS</span>
-		<span class="combo-count">{activeCombos.length}/{allCombos.length}</span>
+<div class="combo game-panel">
+	<button class="header game-panel-header" onclick={() => (expanded = !expanded)}>
+		<span class="title">COMBOS</span>
+		<span class="count">{activeCombos.length}/{allCombos.length}</span>
 		{#if totalMultiplier > 1}
-			<span class="combo-mult">x{totalMultiplier.toFixed(2)}</span>
+			<span class="mult">x{totalMultiplier.toFixed(2)}</span>
 		{/if}
-		<span class="combo-toggle">{expanded ? '▲' : '▼'}</span>
+		<span class="toggle">{expanded ? '▲' : '▼'}</span>
 	</button>
 
 	{#if expanded}
-		<div class="combo-list">
+		<div class="list">
 			{#each allCombos as combo}
 				{@const active = activeCombos.some((c) => c.id === combo.id)}
-				<div class="combo-item" class:active>
-					<span class="combo-icon">{combo.icon}</span>
-					<div class="combo-info">
-						<span class="combo-name">{combo.name}</span>
-						<span class="combo-desc">{combo.description}</span>
+				<div class="item" class:active>
+					<span class="icon">{combo.icon}</span>
+					<div class="info">
+						<span class="name">{combo.name}</span>
+						<span class="desc">{combo.description}</span>
 					</div>
-					<span class="combo-bonus">
+					<span class="bonus">
 						{active ? `x${combo.bonus.value}` : '???'}
 					</span>
 				</div>
@@ -38,103 +38,96 @@
 </div>
 
 <style>
-	.combo-panel {
-		background: var(--color-bg);
-		border: 2px solid var(--color-border);
-		overflow: hidden;
-		box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
+	.combo {
+		display: flex;
+		flex-direction: column;
 	}
 
-	.combo-header {
+	.header {
 		width: 100%;
-		padding: 0.5rem 0.7rem;
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		background: var(--color-surface);
+		gap: 6px;
 		border: none;
 		cursor: pointer;
 		font-family: var(--font-pixel);
 		color: var(--color-text);
 	}
 
-	.combo-header:hover {
-		background: rgba(85, 187, 255, 0.06);
+	.header:hover {
+		background: var(--color-surface-hover);
 	}
 
-	.combo-title {
-		font-size: 0.6rem;
+	.title {
+		font-size: 8px;
 		color: var(--color-accent);
 		letter-spacing: 3px;
 	}
 
-	.combo-count {
-		font-size: 0.5rem;
+	.count {
+		font-size: 7px;
 		color: var(--color-text-dim);
 		margin-left: auto;
 	}
 
-	.combo-mult {
-		font-size: 0.55rem;
+	.mult {
+		font-size: 7px;
 		color: var(--color-gold);
 	}
 
-	.combo-toggle {
-		font-size: 0.5rem;
+	.toggle {
+		font-size: 7px;
 		color: var(--color-text-dim);
 	}
 
-	.combo-list {
+	.list {
 		display: flex;
 		flex-direction: column;
-		border-top: 2px solid var(--color-border);
 		max-height: 200px;
 		overflow-y: auto;
 	}
 
-	.combo-item {
+	.item {
 		display: flex;
 		align-items: center;
-		gap: 0.4rem;
-		padding: 0.4rem 0.6rem;
-		border-bottom: 1px dashed var(--color-border);
+		gap: 6px;
+		padding: 6px 8px;
+		border-top: 1px solid var(--color-border);
 		opacity: 0.3;
 	}
 
-	.combo-item.active {
+	.item.active {
 		opacity: 1;
-		background: var(--color-surface);
+		background: rgba(255, 255, 255, 0.02);
 	}
 
-	.combo-icon {
-		font-size: 0.75rem;
-		width: 1.4rem;
+	.icon {
+		font-size: 10px;
+		width: 18px;
 		text-align: center;
 	}
 
-	.combo-info {
+	.info {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		gap: 0.1rem;
+		gap: 2px;
 	}
 
-	.combo-name {
-		font-size: 0.5rem;
+	.name {
+		font-size: 7px;
 		color: var(--color-text);
 	}
 
-	.combo-desc {
-		font-size: 0.45rem;
+	.desc {
+		font-size: 6px;
 		color: var(--color-text-dim);
 	}
 
-	.combo-bonus {
-		font-size: 0.5rem;
+	.bonus {
+		font-size: 7px;
 		color: var(--color-gold);
 	}
 
-	.combo-item:not(.active) .combo-bonus {
+	.item:not(.active) .bonus {
 		color: var(--color-text-dim);
 	}
 </style>
