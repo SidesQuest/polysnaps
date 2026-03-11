@@ -1,8 +1,9 @@
 <script>
 	import { onMount } from 'svelte';
-	import { gameState, placeShape, canAffordShape, addResource, getNodeProduction, getNodeDepth, getBuffZones, getClickValue, getTierLevel, getNodeChildren, getEdgeResource, getNodeResource, getGeneratorCount } from '$lib/game/state.svelte.js';
+	import { gameState, placeShape, canAffordShape, addResource, getNodeProduction, getNodeDepth, getBuffZones, getClickValue, performClick, getTierLevel, getNodeChildren, getEdgeResource, getNodeResource, getGeneratorCount, getAvailableShapes, getShapePlacementCost, getNextShapeCost, getFogState, getPuzzleSlots } from '$lib/game/state.svelte.js';
 	import { RESOURCE_DEFS } from '$lib/game/state.svelte.js';
-	import { buildGeometryTree, getOpenSlots, verticesToString, getPolygonPointsString, getCoreVertices } from '$lib/game/shapes.js';
+	import { buildGeometryTree, getOpenSlots, verticesToString, getPolygonPointsString, getCoreVertices, SHAPE_DEFS } from '$lib/game/shapes.js';
+	import { isPointRevealed, FOG_CELL_SIZE } from '$lib/game/fog.js';
 	import { getZoneBonus } from '$lib/game/buffzones.js';
 	import { playClick } from '$lib/game/audio.js';
 	import { formatNumber } from '$lib/utils/format.js';
@@ -22,8 +23,19 @@
 
 	let pulseCore = $state(false);
 	let clickRipples = $state([]);
+	let floatingNums = $state([]);
+	let placeParticles = $state([]);
+	let shakeX = $state(0);
+	let shakeY = $state(0);
 	let rippleId = 0;
+	let floatId = 0;
+	let particleId = 0;
 	let hoveredNode = $state(null);
+	let selectedShape = $state('triangle');
+	let availableShapes = $derived(getAvailableShapes());
+	let selectedCost = $derived(getShapePlacementCost(selectedShape));
+	let fogCells = $derived(getFogState());
+	let puzzleSlots = $derived(getPuzzleSlots());
 	let panX = $state(0);
 	let panY = $state(0);
 	let zoom = $state(1);
@@ -163,6 +175,36 @@
 		return TIER_COLORS[(depth - 1) % TIER_COLORS.length];
 	}
 
+	function spawnFloatingNum(x, y, text, color) {
+		const id = ++floatId;
+		const ox = (Math.random() - 0.5) * 20;
+		floatingNums = [...floatingNums, { id, x: x + ox, y, text, color }];
+		setTimeout(() => {
+			floatingNums = floatingNums.filter((f) => f.id !== id);
+		}, 900);
+	}
+
+	function spawnPlaceParticles(cx, cy, color) {
+		const count = 6;
+		const ids = [];
+		for (let i = 0; i < count; i++) {
+			const id = ++particleId;
+			const angle = (i / count) * Math.PI * 2;
+			ids.push({ id, cx, cy, tx: cx + Math.cos(angle) * 25, ty: cy + Math.sin(angle) * 25, color });
+		}
+		placeParticles = [...placeParticles, ...ids];
+		setTimeout(() => {
+			const idSet = new Set(ids.map((p) => p.id));
+			placeParticles = placeParticles.filter((p) => !idSet.has(p.id));
+		}, 500);
+	}
+
+	function triggerShake() {
+		shakeX = (Math.random() - 0.5) * 4;
+		shakeY = (Math.random() - 0.5) * 4;
+		setTimeout(() => { shakeX = 0; shakeY = 0; }, 100);
+	}
+
 	function handleCoreClick(e) {
 		e.preventDefault();
 		e.stopPropagation();
@@ -175,15 +217,24 @@
 			clickRipples = clickRipples.filter((r) => r !== id);
 		}, 600);
 
-		addResource('energy', getClickValue());
+		const result = performClick();
 		playClick();
+
+		const text = result.isBurst ? `⚡${formatNumber(result.value)}!` : `+${formatNumber(result.value)}`;
+		const color = result.isBurst ? '#ffcc44' : '#44aaff';
+		spawnFloatingNum(0, -15, text, color);
+		if (result.isBurst) triggerShake();
 	}
 
 	function handleSlotClick(e, slot) {
 		e.preventDefault();
 		e.stopPropagation();
-		if (canAffordShape()) {
-			placeShape(slot.parentId, slot.edgeIndex);
+		if (gameState.resources.energy >= selectedCost) {
+			const ok = placeShape(slot.parentId, slot.edgeIndex, selectedShape);
+			if (ok) {
+				const depth = slot.layer || 1;
+				spawnPlaceParticles(slot.center.x, slot.center.y, getLayerColor(depth));
+			}
 		}
 	}
 
@@ -253,6 +304,7 @@
 	class="shape-network"
 	xmlns="http://www.w3.org/2000/svg"
 	preserveAspectRatio="xMidYMid meet"
+	style="transform: translate({shakeX}px, {shakeY}px)"
 	onmousedown={handleMouseDown}
 	onmousemove={handleMouseMove}
 	onmouseup={handleMouseUp}
@@ -273,6 +325,32 @@
 			{zone.icon} {zone.name}
 		</text>
 	{/each}
+
+	{#each puzzleSlots as ps (ps.id)}
+		{@const visible = isPointRevealed(ps.x, ps.y, fogCells)}
+		{@const solved = gameState.solvedPuzzles.includes(ps.id)}
+		{#if visible}
+			<g class="puzzle-slot" class:solved class:rare={ps.isRare}>
+				<circle cx={ps.x} cy={ps.y} r="12" class="puzzle-ring" />
+				<text x={ps.x} y={ps.y + 1} class="puzzle-shape">
+					{ps.requiredShape === 'triangle' ? '△' : ps.requiredShape === 'square' ? '□' : ps.requiredShape === 'pentagon' ? '⬠' : '⬡'}
+				</text>
+				{#if solved}
+					<text x={ps.x} y={ps.y + 10} class="puzzle-solved">✓</text>
+				{:else if ps.isRare}
+					<text x={ps.x} y={ps.y - 14} class="puzzle-rare-tag">★</text>
+				{/if}
+			</g>
+		{/if}
+	{/each}
+
+	<defs>
+		<radialGradient id="fog-edge" cx="50%" cy="50%" r="50%">
+			<stop offset="0%" stop-color="transparent" />
+			<stop offset="70%" stop-color="transparent" />
+			<stop offset="100%" stop-color="rgba(5,5,15,0.85)" />
+		</radialGradient>
+	</defs>
 
 	{#each connectionLines as cl (cl.id)}
 		<line
@@ -357,6 +435,8 @@
 			{@const color = getLayerColor(depth)}
 			{@const tierLvl = getTierLevel(depth)}
 			{@const inZone = getZoneBonus(geo.center, buffZones) > 1}
+			{@const shapeDef = SHAPE_DEFS[geo.node.shape]}
+			{@const roleIcon = shapeDef?.role === 'multiplier' ? '×' : shapeDef?.role === 'storage' ? '▣' : shapeDef?.role === 'converter' ? '⟳' : ''}
 			<polygon
 				points={verticesToString(geo.vertices)}
 				class="placed-shape"
@@ -368,12 +448,15 @@
 			/>
 			<text
 				x={geo.center.x}
-				y={geo.center.y + 3}
+				y={geo.center.y + (roleIcon ? 0 : 3)}
 				class="shape-level"
 				style="fill: {color};"
 			>
 				{tierLvl}
 			</text>
+			{#if roleIcon}
+				<text x={geo.center.x} y={geo.center.y + 7} class="shape-role" style="fill: {color};">{roleIcon}</text>
+			{/if}
 		{/if}
 	{/each}
 
@@ -394,11 +477,44 @@
 		</g>
 	{/if}
 
+	{#each floatingNums as fn (fn.id)}
+		<text
+			x={fn.x} y={fn.y}
+			class="floating-num"
+			fill={fn.color}
+		>{fn.text}</text>
+	{/each}
+
+	{#each placeParticles as pp (pp.id)}
+		<circle cx={pp.cx} cy={pp.cy} r="2" fill={pp.color} class="place-particle">
+			<animate attributeName="cx" from={pp.cx} to={pp.tx} dur="0.4s" fill="freeze" />
+			<animate attributeName="cy" from={pp.cy} to={pp.ty} dur="0.4s" fill="freeze" />
+			<animate attributeName="opacity" from="1" to="0" dur="0.4s" fill="freeze" />
+			<animate attributeName="r" from="2.5" to="0.5" dur="0.4s" fill="freeze" />
+		</circle>
+	{/each}
+
 	<text
 		x={bounds.x + 8} y={bounds.y + 14}
 		class="controls-hint"
 	>scroll to zoom · shift+drag to pan</text>
 </svg>
+
+{#if availableShapes.length > 1}
+	<div class="shape-selector">
+		{#each availableShapes as shape}
+			<button
+				class="shape-btn"
+				class:active={selectedShape === shape.key}
+				onclick={() => (selectedShape = shape.key)}
+				title="{shape.name}: {shape.description}"
+			>
+				<span class="shape-icon">{shape.sides === 3 ? '△' : shape.sides === 4 ? '□' : shape.sides === 5 ? '⬠' : '⬡'}</span>
+				<span class="shape-cost">{formatNumber(getShapePlacementCost(shape.key))}</span>
+			</button>
+		{/each}
+	</div>
+{/if}
 
 <style>
 	.shape-network {
@@ -497,6 +613,14 @@
 		font-size: 6px;
 		text-anchor: middle;
 		pointer-events: none;
+	}
+
+	.shape-role {
+		font-family: var(--font-pixel);
+		font-size: 5px;
+		text-anchor: middle;
+		pointer-events: none;
+		opacity: 0.6;
 	}
 
 	.empty-slot {
@@ -610,5 +734,131 @@
 	@keyframes slot-blink {
 		0%, 100% { opacity: 0.5; }
 		50% { opacity: 1; }
+	}
+
+	.floating-num {
+		font-family: var(--font-pixel);
+		font-size: 8px;
+		text-anchor: middle;
+		pointer-events: none;
+		animation: float-up 0.9s ease-out forwards;
+	}
+
+	@keyframes float-up {
+		0% {
+			opacity: 1;
+			transform: translateY(0);
+		}
+		70% { opacity: 1; }
+		100% {
+			opacity: 0;
+			transform: translateY(-30px);
+		}
+	}
+
+	.place-particle {
+		pointer-events: none;
+	}
+
+	.placed-shape {
+		transition: filter 0.3s;
+	}
+
+	.buff-zone {
+		animation: zone-glow 3s ease-in-out infinite alternate;
+	}
+
+	@keyframes zone-glow {
+		0% { opacity: 0.2; }
+		100% { opacity: 0.4; }
+	}
+
+	.puzzle-slot {
+		pointer-events: none;
+	}
+
+	.puzzle-ring {
+		fill: rgba(255, 221, 85, 0.05);
+		stroke: var(--color-gold);
+		stroke-width: 1;
+		stroke-dasharray: 3 3;
+		opacity: 0.5;
+	}
+
+	.puzzle-slot.solved .puzzle-ring {
+		stroke: var(--color-green);
+		fill: rgba(85, 255, 153, 0.05);
+		stroke-dasharray: none;
+		opacity: 0.3;
+	}
+
+	.puzzle-slot.rare .puzzle-ring {
+		stroke: #ff44aa;
+		fill: rgba(255, 68, 170, 0.05);
+	}
+
+	.puzzle-shape {
+		font-size: 8px;
+		text-anchor: middle;
+		fill: var(--color-gold);
+		opacity: 0.6;
+	}
+
+	.puzzle-solved {
+		font-size: 5px;
+		text-anchor: middle;
+		fill: var(--color-green);
+	}
+
+	.puzzle-rare-tag {
+		font-size: 5px;
+		text-anchor: middle;
+		fill: #ff44aa;
+	}
+
+	.shape-selector {
+		position: absolute;
+		bottom: 8px;
+		left: 50%;
+		transform: translateX(-50%);
+		display: flex;
+		gap: 4px;
+		background: rgba(11, 11, 25, 0.9);
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		padding: 4px 6px;
+	}
+
+	.shape-btn {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+		padding: 4px 8px;
+		background: transparent;
+		border: 1px solid var(--color-border);
+		border-radius: 3px;
+		cursor: pointer;
+		font-family: var(--font-pixel);
+		color: var(--color-text-dim);
+		outline: none;
+	}
+
+	.shape-btn.active {
+		border-color: var(--color-gold);
+		color: var(--color-gold);
+		background: rgba(255, 221, 85, 0.08);
+	}
+
+	.shape-btn:hover {
+		border-color: var(--color-accent);
+	}
+
+	.shape-icon {
+		font-size: 14px;
+	}
+
+	.shape-cost {
+		font-size: 6px;
 	}
 </style>

@@ -9,8 +9,11 @@
 	let nextName = $derived(shapeNames[nextSides - 3] || `${nextSides}-gon`);
 	let progress = $derived(Math.min(100, (gameState.stats.totalEnergyEarned / threshold) * 100));
 
+	let { onprestige = () => {} } = $props();
+
 	function handlePrestige() {
 		if (!ready) return;
+		onprestige();
 		resetForPrestige();
 	}
 </script>

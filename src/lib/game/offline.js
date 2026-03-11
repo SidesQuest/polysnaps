@@ -1,4 +1,5 @@
 import { SHAPE_DEFS } from "./shapes.js";
+import { getSkillEffect } from "./skills.js";
 
 const LAST_ONLINE_KEY = "polysnaps_last_online";
 
@@ -25,7 +26,10 @@ function getNodeDepth(nodes, nodeId) {
 }
 
 export function calculateOfflineEarnings(gameState, offlineSeconds) {
-  const offlineMultiplier = 0.5;
+  const skills = gameState.skills || {};
+  const offlineMultiplier = 0.5 + getSkillEffect(skills, "offline_mult");
+  const offlineGen = getSkillEffect(skills, "offline_gen");
+
   const result = { energy: 0, flux: 0, prisms: 0 };
 
   for (const node of gameState.nodes) {
@@ -35,7 +39,9 @@ export function calculateOfflineEarnings(gameState, offlineSeconds) {
 
     const depth = getNodeDepth(gameState.nodes, node.id);
     const tierLvl = (gameState.tierLevels && gameState.tierLevels[depth]) || 1;
-    const prod = def.baseProduction * tierLvl;
+    const genCount =
+      (gameState.generatorCounts && gameState.generatorCounts[node.id]) || 1;
+    const prod = def.baseProduction * tierLvl * (depth === 1 ? genCount : 0);
 
     result.energy += prod;
 
@@ -54,6 +60,13 @@ export function calculateOfflineEarnings(gameState, offlineSeconds) {
   result.prisms = Math.floor(
     result.prisms * offlineSeconds * offlineMultiplier,
   );
+
+  if (offlineGen > 0 && gameState.generatorCounts) {
+    const genGrowth = offlineSeconds * 0.01 * offlineGen;
+    for (const key of Object.keys(gameState.generatorCounts)) {
+      gameState.generatorCounts[key] += genGrowth;
+    }
+  }
 
   return result;
 }
