@@ -298,11 +298,12 @@
 	.side-panel {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 8px;
 		flex-shrink: 0;
 		overflow-y: auto;
 		max-height: 100%;
-		width: 320px;
+		width: 280px;
+		padding: 8px;
 	}
 
 	.prestige-flash {

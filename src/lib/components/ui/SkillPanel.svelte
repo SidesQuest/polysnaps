@@ -10,17 +10,18 @@
 </script>
 
 <button class="skill-toggle game-panel" onclick={() => (open = true)}>
-	<span class="toggle-label">SKILLS</span>
+	<span class="toggle-icon">✦</span>
+	<span class="toggle-label">SKILL TREE</span>
 	<span class="toggle-points">{gameState.prestige.currency} pts</span>
 </button>
 
 <style>
 	.skill-toggle {
 		width: 100%;
-		padding: 8px 10px;
+		padding: 10px 12px;
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 8px;
 		cursor: pointer;
 		font-family: var(--font-pixel);
 		color: var(--color-text);
@@ -34,14 +35,19 @@
 		transform: translate(1px, 1px);
 	}
 
+	.toggle-icon {
+		font-size: 12px;
+		color: #aa44ff;
+	}
+
 	.toggle-label {
-		font-size: 8px;
+		font-size: 10px;
 		color: #aa44ff;
 		letter-spacing: 2px;
 	}
 
 	.toggle-points {
-		font-size: 7px;
+		font-size: 9px;
 		color: var(--color-gold);
 		margin-left: auto;
 	}

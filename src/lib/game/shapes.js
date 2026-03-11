@@ -103,36 +103,28 @@ export function getRegularPolygonVertices(
     return [edgeV1, edgeV2, tip];
   }
 
-  const sideLen = edgeLen;
-  const apothem = sideLen / (2 * Math.tan(Math.PI / sides));
+  const apothem = edgeLen / (2 * Math.tan(Math.PI / sides));
   const polyCenter = { x: mx + nx * apothem, y: my + ny * apothem };
+  const circumR = edgeLen / (2 * Math.sin(Math.PI / sides));
 
-  const edgeAngle = Math.atan2(ey, ex);
+  const a1 = Math.atan2(edgeV1.y - polyCenter.y, edgeV1.x - polyCenter.x);
+  const a2 = Math.atan2(edgeV2.y - polyCenter.y, edgeV2.x - polyCenter.x);
+
+  let angleDelta = a2 - a1;
+  if (angleDelta > Math.PI) angleDelta -= 2 * Math.PI;
+  if (angleDelta < -Math.PI) angleDelta += 2 * Math.PI;
+
+  const step = angleDelta > 0 ? (2 * Math.PI) / sides : -(2 * Math.PI) / sides;
+
   const vertices = [];
   for (let i = 0; i < sides; i++) {
-    const circumR = sideLen / (2 * Math.sin(Math.PI / sides));
-    const angle = edgeAngle + Math.PI / sides + (i * 2 * Math.PI) / sides;
+    const angle = a1 + i * step;
     vertices.push({
-      x: polyCenter.x + Math.cos(angle) * circumR,
-      y: polyCenter.y + Math.sin(angle) * circumR,
+      x: polyCenter.x + circumR * Math.cos(angle),
+      y: polyCenter.y + circumR * Math.sin(angle),
     });
   }
-
-  let bestIdx = 0;
-  let bestDist = Infinity;
-  for (let i = 0; i < vertices.length; i++) {
-    const d = Math.hypot(vertices[i].x - edgeV1.x, vertices[i].y - edgeV1.y);
-    if (d < bestDist) {
-      bestDist = d;
-      bestIdx = i;
-    }
-  }
-
-  const rotated = [];
-  for (let i = 0; i < sides; i++) {
-    rotated.push(vertices[(bestIdx + i) % sides]);
-  }
-  return rotated;
+  return vertices;
 }
 
 export function getAttachedTriangleVertices(
@@ -355,6 +347,42 @@ export function getOpenSlots(nodes, coreSides, coreRadius) {
   }
 
   return slots;
+}
+
+function pointInPolygon(px, py, verts) {
+  let inside = false;
+  for (let i = 0, j = verts.length - 1; i < verts.length; j = i++) {
+    const xi = verts[i].x,
+      yi = verts[i].y;
+    const xj = verts[j].x,
+      yj = verts[j].y;
+    if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+export function wouldOverlap(newVerts, nodes, coreSides, coreRadius, parentId) {
+  const geo = buildGeometryTree(nodes, coreSides, coreRadius);
+  const newCenter = getPolygonCenter(newVerts);
+
+  for (const g of geo) {
+    if (g.node.id === parentId || g.node.id === "core") continue;
+
+    const dx = newCenter.x - g.center.x;
+    const dy = newCenter.y - g.center.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 5) return true;
+
+    if (pointInPolygon(newCenter.x, newCenter.y, g.vertices)) return true;
+    if (pointInPolygon(g.center.x, g.center.y, newVerts)) return true;
+
+    for (const v of newVerts) {
+      if (pointInPolygon(v.x, v.y, g.vertices)) return true;
+    }
+  }
+  return false;
 }
 
 function getNodeDepth(nodes, nodeId) {

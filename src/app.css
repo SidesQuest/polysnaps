@@ -90,11 +90,11 @@ button {
 .game-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: 5px;
 }
 
 .game-panel-header {
-  padding: 8px 10px;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--color-border);

@@ -4,6 +4,11 @@ import {
   buildGeometryTree,
   getOpenSlots,
   getUnlockedShapes,
+  wouldOverlap,
+  getAttachedShapeVertices,
+  getPolygonCenter,
+  getCoreVertices,
+  getFreeEdges,
 } from "./shapes.js";
 import { getComboMultiplier, getActiveCombos, getAllCombos } from "./combos.js";
 import { generateBuffZones, getZoneBonus } from "./buffzones.js";
@@ -344,6 +349,52 @@ export function placeShape(parentId, edgeIndex, shapeType = "triangle") {
     (n) => n.parentId === parentId && n.edgeIndex === edgeIndex,
   );
   if (alreadyExists) return false;
+
+  const coreR = 50;
+  const shapeDef = SHAPE_DEFS[shapeType] || SHAPE_DEFS.triangle;
+  const geo = buildGeometryTree(
+    gameState.nodes,
+    gameState.coreShape.sides,
+    coreR,
+  );
+  const parentGeo = geo.find((g) => g.node.id === parentId);
+  if (!parentGeo) return false;
+
+  let edgeV1, edgeV2;
+  if (parentId === "core") {
+    const coreVerts = getCoreVertices(gameState.coreShape.sides, coreR);
+    edgeV1 = coreVerts[edgeIndex];
+    edgeV2 = coreVerts[(edgeIndex + 1) % gameState.coreShape.sides];
+  } else {
+    const parentDef =
+      SHAPE_DEFS[gameState.nodes.find((n) => n.id === parentId)?.shape] ||
+      SHAPE_DEFS.triangle;
+    const freeEdges = getFreeEdges(parentGeo.vertices, parentDef.sides);
+    const edge = freeEdges[edgeIndex];
+    if (!edge) return false;
+    edgeV1 = edge.v1;
+    edgeV2 = edge.v2;
+  }
+
+  const newVerts = getAttachedShapeVertices(
+    shapeDef.sides,
+    edgeV1,
+    edgeV2,
+    parentGeo.center.x,
+    parentGeo.center.y,
+  );
+
+  if (
+    wouldOverlap(
+      newVerts,
+      gameState.nodes,
+      gameState.coreShape.sides,
+      coreR,
+      parentId,
+    )
+  ) {
+    return false;
+  }
 
   gameState.resources.energy -= cost;
   const newId = `n-${nextId++}`;

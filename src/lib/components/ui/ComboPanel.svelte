@@ -45,7 +45,7 @@
 
 	.header {
 		width: 100%;
-		gap: 6px;
+		gap: 8px;
 		border: none;
 		cursor: pointer;
 		font-family: var(--font-pixel);
@@ -57,39 +57,39 @@
 	}
 
 	.title {
-		font-size: 8px;
+		font-size: 10px;
 		color: var(--color-accent);
 		letter-spacing: 3px;
 	}
 
 	.count {
-		font-size: 7px;
+		font-size: 9px;
 		color: var(--color-text-dim);
 		margin-left: auto;
 	}
 
 	.mult {
-		font-size: 7px;
+		font-size: 9px;
 		color: var(--color-gold);
 	}
 
 	.toggle {
-		font-size: 7px;
+		font-size: 9px;
 		color: var(--color-text-dim);
 	}
 
 	.list {
 		display: flex;
 		flex-direction: column;
-		max-height: 200px;
+		max-height: 240px;
 		overflow-y: auto;
 	}
 
 	.item {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 6px 8px;
+		gap: 8px;
+		padding: 8px 10px;
 		border-top: 1px solid var(--color-border);
 		opacity: 0.3;
 	}
@@ -100,8 +100,8 @@
 	}
 
 	.icon {
-		font-size: 10px;
-		width: 18px;
+		font-size: 14px;
+		width: 22px;
 		text-align: center;
 	}
 
@@ -109,22 +109,27 @@
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: 3px;
+		min-width: 0;
 	}
 
 	.name {
-		font-size: 7px;
+		font-size: 9px;
 		color: var(--color-text);
 	}
 
 	.desc {
-		font-size: 6px;
+		font-size: 7px;
 		color: var(--color-text-dim);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.bonus {
-		font-size: 7px;
+		font-size: 9px;
 		color: var(--color-gold);
+		flex-shrink: 0;
 	}
 
 	.item:not(.active) .bonus {
