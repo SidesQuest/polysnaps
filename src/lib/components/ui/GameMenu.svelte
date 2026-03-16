@@ -3,7 +3,7 @@
 	import { gameState, respecSkills, convertSkillPoints } from '$lib/game/state.svelte.js';
 	import { saveGame, deleteSave, exportSaveFile, importSaveFile } from '$lib/game/save.js';
 	import { loadStateFrom } from '$lib/game/state.svelte.js';
-	import { isMuted, toggleMute } from '$lib/game/audio.js';
+	import { isMuted, toggleMute, getVolume, setVolume } from '$lib/game/audio.js';
 	import { formatNumber, formatTime } from '$lib/utils/format.js';
 	import { getAllAchievements } from '$lib/game/achievements.js';
 	import { CHALLENGE_DEFS, getAvailableChallenges } from '$lib/game/challenges.js';
@@ -15,6 +15,7 @@
 
 	let tab = $state('main');
 	let muted = $state(isMuted());
+	let volume = $state(getVolume());
 	let confirmReset = $state(false);
 	let confirmRespec = $state(false);
 	let saveFlash = $state(false);
@@ -138,6 +139,22 @@
 										{#snippet children()}{muted ? '🔇 OFF' : '🔊 ON'}{/snippet}
 									</CyberButton>
 								</div>
+								{#if !muted}
+								<div class="setting-row">
+									<span class="setting-label">Volume</span>
+									<div class="volume-control">
+										<input
+											type="range"
+											min="0"
+											max="100"
+											value={Math.round(volume * 100)}
+											oninput={(e) => { volume = e.target.value / 100; setVolume(volume); }}
+											class="volume-slider"
+										/>
+										<span class="volume-pct">{Math.round(volume * 100)}%</span>
+									</div>
+								</div>
+								{/if}
 								<div class="setting-row">
 									<span class="setting-label">Renderer</span>
 									<CyberButton small variant="ghost" onclick={() => (usePixi = !usePixi)}>
@@ -236,7 +253,8 @@
 						<div class="sub-panel">
 							<button class="back-btn" onclick={() => (tab = 'main')}>← BACK</button>
 							<div class="info-content">
-								<div class="info-logo">◆ POLYSNAPS ◆</div>
+								<img src="{base}/assets/ui/5%20Logo/Logo1.png" alt="Polysnaps" class="info-logo-img" />
+								<div class="info-logo">POLYSNAPS</div>
 								<p class="info-tagline">Snap. Flow. Grow.</p>
 								<div class="info-divider"></div>
 								<p class="info-text">
@@ -384,6 +402,50 @@
 		color: var(--color-text-dim);
 	}
 
+	.volume-control {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.volume-slider {
+		width: 100px;
+		height: 8px;
+		-webkit-appearance: none;
+		appearance: none;
+		background: #1a1f40;
+		border-radius: 4px;
+		border: 1px solid var(--color-border);
+		outline: none;
+	}
+
+	.volume-slider::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		width: 16px;
+		height: 16px;
+		border-radius: 3px;
+		background: var(--color-accent);
+		cursor: pointer;
+		border: 2px solid #4a6090;
+	}
+
+	.volume-slider::-moz-range-thumb {
+		width: 16px;
+		height: 16px;
+		border-radius: 3px;
+		background: var(--color-accent);
+		cursor: pointer;
+		border: 2px solid #4a6090;
+	}
+
+	.volume-pct {
+		font-family: var(--font-pixel);
+		font-size: 9px;
+		color: var(--color-text-dim);
+		min-width: 32px;
+		text-align: right;
+	}
+
 	.divider {
 		height: 1px;
 		background: var(--color-border);
@@ -423,6 +485,13 @@
 		gap: 10px;
 		text-align: center;
 		padding: 10px 0;
+	}
+
+	.info-logo-img {
+		width: 64px;
+		height: auto;
+		image-rendering: pixelated;
+		filter: drop-shadow(0 0 8px rgba(136, 170, 255, 0.4));
 	}
 
 	.info-logo {

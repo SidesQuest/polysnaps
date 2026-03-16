@@ -45,6 +45,11 @@ body {
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+  cursor: var(--cursor-default, auto);
+}
+
+a, button, [role="button"], input[type="range"] {
+  cursor: var(--cursor-pointer, pointer);
 }
 
 #crt-layer {

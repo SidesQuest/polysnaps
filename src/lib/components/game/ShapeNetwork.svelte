@@ -211,11 +211,19 @@
 		}, 500);
 	}
 
-	function triggerShake() {
-		shakeX = (Math.random() - 0.5) * 4;
-		shakeY = (Math.random() - 0.5) * 4;
-		setTimeout(() => { shakeX = 0; shakeY = 0; }, 100);
+	function triggerShake(intensity = 4) {
+		shakeX = (Math.random() - 0.5) * intensity;
+		shakeY = (Math.random() - 0.5) * intensity;
+		setTimeout(() => { shakeX = 0; shakeY = 0; }, 120);
 	}
+
+	function haptic(ms = 15) {
+		if (typeof navigator !== 'undefined' && navigator.vibrate) {
+			navigator.vibrate(ms);
+		}
+	}
+
+	let coreFlash = $state(false);
 
 	function handleCoreClick(e) {
 		e.preventDefault();
@@ -231,11 +239,17 @@
 
 		const result = performClick();
 		playClick();
+		triggerShake(result.isBurst ? 8 : 2);
+		haptic(result.isBurst ? 40 : 10);
 
 		const text = result.isBurst ? `⚡${formatNumber(result.value)}!` : `+${formatNumber(result.value)}`;
-		const color = result.isBurst ? '#ffcc44' : '#44aaff';
+		const color = result.isBurst ? '#ffcc44' : '#88ccff';
 		spawnFloatingNum(0, -15, text, color);
-		if (result.isBurst) triggerShake();
+
+		if (result.isBurst) {
+			coreFlash = true;
+			setTimeout(() => (coreFlash = false), 300);
+		}
 	}
 
 	function handleSlotClick(e, slot) {
@@ -246,11 +260,20 @@
 			if (ok) {
 				const depth = slot.layer || 1;
 				spawnPlaceParticles(slot.center.x, slot.center.y, getLayerColor(depth));
+				haptic(20);
+				const prod = getNodeProduction(gameState.nodes[gameState.nodes.length - 1]?.id);
+				if (prod > 0) {
+					const resKey = slot.parentId === 'core' ? getEdgeResource(slot.edgeIndex) : null;
+					const resDef = resKey ? RESOURCE_DEFS[resKey] : null;
+					const prodColor = resDef ? resDef.color : getLayerColor(depth);
+					spawnFloatingNum(slot.center.x, slot.center.y - 10, `+${formatNumber(prod)}/s`, prodColor);
+				}
 			} else {
 				playError();
 			}
 		} else {
 			playError();
+			haptic(5);
 		}
 	}
 
@@ -268,6 +291,13 @@
 			triggerShake();
 		}
 	}
+
+	let isTouchDevice = $state(false);
+	let lastTouchDist = $state(0);
+
+	onMount(() => {
+		isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+	});
 
 	function handleWheel(e) {
 		e.preventDefault();
@@ -295,6 +325,58 @@
 
 	function handleMouseUp() {
 		isPanning = false;
+	}
+
+	function handleTouchStart(e) {
+		if (e.touches.length === 2) {
+			e.preventDefault();
+			isPanning = true;
+			const dx = e.touches[0].clientX - e.touches[1].clientX;
+			const dy = e.touches[0].clientY - e.touches[1].clientY;
+			lastTouchDist = Math.sqrt(dx * dx + dy * dy);
+			const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+			const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+			lastMouse = { x: mx, y: my };
+		} else if (e.touches.length === 1) {
+			isPanning = true;
+			lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+		}
+	}
+
+	function handleTouchMove(e) {
+		if (e.touches.length === 2) {
+			e.preventDefault();
+			const dx = e.touches[0].clientX - e.touches[1].clientX;
+			const dy = e.touches[0].clientY - e.touches[1].clientY;
+			const dist = Math.sqrt(dx * dx + dy * dy);
+			if (lastTouchDist > 0) {
+				const scale = dist / lastTouchDist;
+				zoom = Math.max(0.3, Math.min(5, zoom * scale));
+			}
+			lastTouchDist = dist;
+			const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+			const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+			panX += (mx - lastMouse.x) * 0.5 / zoom;
+			panY += (my - lastMouse.y) * 0.5 / zoom;
+			lastMouse = { x: mx, y: my };
+		} else if (e.touches.length === 1 && isPanning) {
+			const dx = e.touches[0].clientX - lastMouse.x;
+			const dy = e.touches[0].clientY - lastMouse.y;
+			if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+				panX += dx * 0.5 / zoom;
+				panY += dy * 0.5 / zoom;
+				lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+			}
+		}
+	}
+
+	function handleTouchEnd(e) {
+		if (e.touches.length < 2) {
+			lastTouchDist = 0;
+		}
+		if (e.touches.length === 0) {
+			isPanning = false;
+		}
 	}
 
 	function handleShapeHover(geo) {
@@ -348,6 +430,9 @@
 	onmousemove={handleMouseMove}
 	onmouseup={handleMouseUp}
 	onmouseleave={handleMouseUp}
+	ontouchstart={handleTouchStart}
+	ontouchmove={handleTouchMove}
+	ontouchend={handleTouchEnd}
 	role="img"
 >
 	{#each buffZones as zone}
@@ -460,6 +545,9 @@
 				class="core-inner"
 			/>
 			<text y="4" class="core-text">TAP</text>
+			{#if coreFlash}
+				<circle cx="0" cy="0" r="60" class="core-burst-flash" />
+			{/if}
 			{#each coreEdgeMids as em}
 				<line
 					x1={em.edgeX1} y1={em.edgeY1}
@@ -571,7 +659,7 @@
 	<text
 		x={bounds.x + 8} y={bounds.y + 14}
 		class="controls-hint"
-	>scroll to zoom · shift+drag to pan</text>
+	>{isTouchDevice ? 'pinch to zoom · drag to pan' : 'scroll to zoom · shift+drag to pan'}</text>
 </svg>
 
 {#if availableShapes.length > 1}
@@ -788,9 +876,20 @@
 	.click-ripple {
 		fill: none;
 		stroke: var(--color-accent);
-		stroke-width: 2;
+		stroke-width: 2.5;
 		pointer-events: none;
 		animation: ripple-expand 0.6s ease-out forwards;
+	}
+
+	.core-burst-flash {
+		fill: rgba(255, 221, 85, 0.3);
+		pointer-events: none;
+		animation: burst-flash 0.3s ease-out forwards;
+	}
+
+	@keyframes burst-flash {
+		0% { opacity: 1; r: 30; }
+		100% { opacity: 0; r: 100; }
 	}
 
 	@keyframes core-pulse {
@@ -819,21 +918,25 @@
 
 	.floating-num {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 10px;
 		text-anchor: middle;
 		pointer-events: none;
-		animation: float-up 0.9s ease-out forwards;
+		animation: float-up 1s ease-out forwards;
+		filter: drop-shadow(0 0 3px currentColor);
 	}
 
 	@keyframes float-up {
 		0% {
 			opacity: 1;
-			transform: translateY(0);
+			transform: translateY(0) scale(1.2);
+		}
+		15% {
+			transform: translateY(-5px) scale(1);
 		}
 		70% { opacity: 1; }
 		100% {
 			opacity: 0;
-			transform: translateY(-30px);
+			transform: translateY(-35px) scale(0.8);
 		}
 	}
 
