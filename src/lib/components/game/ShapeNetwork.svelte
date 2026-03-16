@@ -10,7 +10,7 @@
 
 	const CORE_RADIUS = 50;
 	const TIER_COLORS = ['#44aaff', '#44ff88', '#ffcc44', '#ff44aa', '#aa44ff', '#44ffff'];
-	const MAX_FLOW_PATHS = 15;
+	const MAX_FLOW_PATHS = 10;
 
 	let svgEl = $state(null);
 
@@ -46,8 +46,23 @@
 		buildGeometryTree(gameState.nodes, gameState.coreShape.sides, CORE_RADIUS)
 	);
 
-	let openSlots = $derived(
+	let allOpenSlots = $derived(
 		getOpenSlots(gameState.nodes, gameState.coreShape.sides, CORE_RADIUS, selectedShape)
+	);
+
+	let maxPlacedDepth = $derived.by(() => {
+		let maxD = 0;
+		for (const n of gameState.nodes) {
+			if (n.id === 'core') continue;
+			let d = 0, cur = n;
+			while (cur && cur.parentId) { d++; cur = gameState.nodes.find(nd => nd.id === cur.parentId); }
+			if (d > maxD) maxD = d;
+		}
+		return maxD;
+	});
+
+	let openSlots = $derived(
+		allOpenSlots.filter(s => s.layer <= maxPlacedDepth + 1)
 	);
 
 	let buffZones = $derived(getBuffZones());
@@ -442,18 +457,15 @@
 		}).join(' ')}
 		<polygon
 			points={hexPoints}
-			fill="{zone.color}12"
+			fill="{zone.color}08"
 			stroke={zone.color}
-			stroke-width="1.2"
-			stroke-dasharray="6 4"
-			opacity="0.45"
+			stroke-width="0.8"
+			stroke-dasharray="8 6"
+			opacity="0.25"
 			class="buff-zone"
 		/>
-		<text x={zone.x} y={zone.y} class="zone-label-center" fill={zone.color}>
-			{zone.icon}
-		</text>
-		<text x={zone.x} y={zone.y + 10} class="zone-label-name" fill={zone.color}>
-			{zone.name}
+		<text x={zone.x} y={zone.y + 4} class="zone-label-name" fill={zone.color}>
+			{zone.icon} {zone.name}
 		</text>
 	{/each}
 
@@ -500,29 +512,27 @@
 		{#each openSlots as slot}
 			{@const slotResKey = slot.parentId === 'core' ? getEdgeResource(slot.edgeIndex) : null}
 			{@const slotRes = slotResKey ? RESOURCE_DEFS[slotResKey] : null}
-			{@const shapeSides = SHAPE_DEFS[selectedShape]?.sides || 3}
-			{@const shapeSymbol = shapeSides === 3 ? '△' : shapeSides === 4 ? '□' : shapeSides === 5 ? '⬠' : '⬡'}
-			<polygon
-				points={verticesToString(slot.vertices)}
-				class="empty-slot affordable"
-				onclick={(e) => handleSlotClick(e, slot)}
-				onkeydown={(e) => e.key === 'Enter' && handleSlotClick(e, slot)}
-				role="button"
-				tabindex="0"
-			/>
-			<text
-				x={slot.center.x}
-				y={slot.center.y + (slotRes ? -2 : 2)}
-				class="slot-shape-hint"
-			>{shapeSymbol}</text>
-			{#if slotRes}
-				<text
-					x={slot.center.x}
-					y={slot.center.y + 8}
-					class="slot-resource-hint"
-					fill={slotRes.color}
-				>{slotRes.icon}</text>
-			{/if}
+			{@const isCore = slot.parentId === 'core'}
+			<g class="slot-group" class:core-slot={isCore}>
+				<polygon
+					points={verticesToString(slot.vertices)}
+					class="empty-slot affordable"
+					onclick={(e) => handleSlotClick(e, slot)}
+					onkeydown={(e) => e.key === 'Enter' && handleSlotClick(e, slot)}
+					role="button"
+					tabindex="0"
+				/>
+				{#if slotRes}
+					<text
+						x={slot.center.x}
+						y={slot.center.y + 3}
+						class="slot-resource-hint"
+						fill={slotRes.color}
+					>{slotRes.icon}</text>
+				{:else}
+					<circle cx={slot.center.x} cy={slot.center.y} r="3" class="slot-dot" />
+				{/if}
+			</g>
 		{/each}
 	{/if}
 
@@ -705,19 +715,12 @@
 		pointer-events: none;
 	}
 
-	.zone-label-center {
-		font-size: 10px;
-		text-anchor: middle;
-		pointer-events: none;
-		opacity: 0.7;
-	}
-
 	.zone-label-name {
 		font-family: var(--font-pixel);
-		font-size: 5.5px;
+		font-size: 5px;
 		text-anchor: middle;
 		pointer-events: none;
-		opacity: 0.6;
+		opacity: 0.35;
 	}
 
 	.flow-particle {
@@ -803,36 +806,50 @@
 		opacity: 0.6;
 	}
 
+	.slot-group {
+		opacity: 0.2;
+		transition: opacity 0.2s;
+	}
+
+	.slot-group:hover {
+		opacity: 1;
+	}
+
+	.slot-group.core-slot {
+		opacity: 0.5;
+	}
+
+	.slot-group.core-slot:hover {
+		opacity: 1;
+	}
+
 	.empty-slot {
-		fill: rgba(255, 221, 85, 0.03);
+		fill: transparent;
 		stroke: var(--color-gold);
-		stroke-width: 1.2;
-		stroke-dasharray: 5 4;
-		opacity: 0.45;
+		stroke-width: 0.8;
+		stroke-dasharray: 4 5;
 		cursor: pointer;
 		outline: none;
-		transition: opacity 0.15s, fill 0.15s;
+		transition: fill 0.15s, stroke-width 0.15s;
 	}
 
-	.empty-slot:hover {
-		opacity: 1;
-		fill: rgba(255, 221, 85, 0.1);
-		animation: slot-blink 0.6s steps(2) infinite;
+	.slot-group:hover .empty-slot {
+		fill: rgba(255, 221, 85, 0.08);
+		stroke-width: 1.5;
+		stroke-dasharray: 5 3;
 	}
 
-	.slot-shape-hint {
+	.slot-dot {
 		fill: var(--color-gold);
-		font-size: 8px;
-		text-anchor: middle;
+		opacity: 0.5;
 		pointer-events: none;
-		opacity: 0.6;
 	}
 
 	.slot-resource-hint {
 		font-size: 7px;
 		text-anchor: middle;
 		pointer-events: none;
-		opacity: 0.5;
+		opacity: 0.6;
 	}
 
 	.tooltip {
@@ -984,8 +1001,8 @@
 	}
 
 	@keyframes zone-glow {
-		0% { opacity: 0.35; }
-		100% { opacity: 0.55; }
+		0% { opacity: 0.2; }
+		100% { opacity: 0.3; }
 	}
 
 	.puzzle-slot {
