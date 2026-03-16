@@ -47,7 +47,7 @@
 	);
 
 	let openSlots = $derived(
-		getOpenSlots(gameState.nodes, gameState.coreShape.sides, CORE_RADIUS)
+		getOpenSlots(gameState.nodes, gameState.coreShape.sides, CORE_RADIUS, selectedShape)
 	);
 
 	let buffZones = $derived(getBuffZones());

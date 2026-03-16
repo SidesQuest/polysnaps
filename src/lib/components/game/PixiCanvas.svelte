@@ -21,7 +21,7 @@
 		buildGeometryTree(gameState.nodes, gameState.coreShape.sides, CORE_RADIUS)
 	);
 	let openSlots = $derived(
-		getOpenSlots(gameState.nodes, gameState.coreShape.sides, CORE_RADIUS)
+		getOpenSlots(gameState.nodes, gameState.coreShape.sides, CORE_RADIUS, selectedShape)
 	);
 	let buffZones = $derived(getBuffZones());
 	let puzzleSlots = $derived(getPuzzleSlots());

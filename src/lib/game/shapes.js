@@ -290,7 +290,26 @@ export function buildGeometryTree(nodes, coreSides, coreRadius) {
   return result;
 }
 
-export function getOpenSlots(nodes, coreSides, coreRadius) {
+function shrinkPolygon(vertices, amount) {
+  const center = getPolygonCenter(vertices);
+  return vertices.map((v) => {
+    const dx = v.x - center.x;
+    const dy = v.y - center.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 0.01) return { x: v.x, y: v.y };
+    const shrunk = Math.max(0, dist - amount) / dist;
+    return {
+      x: center.x + dx * shrunk,
+      y: center.y + dy * shrunk,
+    };
+  });
+}
+
+export function getOpenSlots(nodes, coreSides, coreRadius, shapeType) {
+  const shapeSides = shapeType
+    ? (SHAPE_DEFS[shapeType]?.sides || 3)
+    : 3;
+
   const geo = buildGeometryTree(nodes, coreSides, coreRadius);
   const slots = [];
   const nodeMap = new Map();
@@ -309,14 +328,17 @@ export function getOpenSlots(nodes, coreSides, coreRadius) {
     if (!hasChild) {
       const v1 = coreVerts[i];
       const v2 = coreVerts[(i + 1) % coreSides];
-      const slotVerts = getAttachedTriangleVertices(v1, v2, 0, 0);
-      slots.push({
-        parentId: "core",
-        edgeIndex: i,
-        vertices: slotVerts,
-        center: getPolygonCenter(slotVerts),
-        layer: 1,
-      });
+      const slotVerts = getAttachedShapeVertices(shapeSides, v1, v2, 0, 0);
+      const slotCenter = getPolygonCenter(slotVerts);
+      if (!wouldOverlap(slotVerts, nodes, coreSides, coreRadius, "core")) {
+        slots.push({
+          parentId: "core",
+          edgeIndex: i,
+          vertices: slotVerts,
+          center: slotCenter,
+          layer: 1,
+        });
+      }
     }
   }
 
@@ -333,20 +355,24 @@ export function getOpenSlots(nodes, coreSides, coreRadius) {
       );
       if (!hasChild) {
         const edge = freeEdges[i];
-        const slotVerts = getAttachedTriangleVertices(
+        const slotVerts = getAttachedShapeVertices(
+          shapeSides,
           edge.v1,
           edge.v2,
           nodeGeo.center.x,
           nodeGeo.center.y,
         );
         const layer = getNodeDepth(nodes, node.id) + 1;
-        slots.push({
-          parentId: node.id,
-          edgeIndex: i,
-          vertices: slotVerts,
-          center: getPolygonCenter(slotVerts),
-          layer,
-        });
+        const slotCenter = getPolygonCenter(slotVerts);
+        if (!wouldOverlap(slotVerts, nodes, coreSides, coreRadius, node.id)) {
+          slots.push({
+            parentId: node.id,
+            edgeIndex: i,
+            vertices: slotVerts,
+            center: slotCenter,
+            layer,
+          });
+        }
       }
     }
   }
@@ -393,8 +419,11 @@ function polygonsEdgeIntersect(vertsA, vertsB) {
   return false;
 }
 
+const OVERLAP_SHRINK = 2.5;
+
 export function wouldOverlap(newVerts, nodes, coreSides, coreRadius, parentId) {
   const geo = buildGeometryTree(nodes, coreSides, coreRadius);
+  const shrunkNew = shrinkPolygon(newVerts, OVERLAP_SHRINK);
   const newCenter = getPolygonCenter(newVerts);
 
   for (const g of geo) {
@@ -403,19 +432,21 @@ export function wouldOverlap(newVerts, nodes, coreSides, coreRadius, parentId) {
     const dx = newCenter.x - g.center.x;
     const dy = newCenter.y - g.center.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 5) return true;
+    if (dist < 3) return true;
 
-    if (pointInPolygon(newCenter.x, newCenter.y, g.vertices)) return true;
-    if (pointInPolygon(g.center.x, g.center.y, newVerts)) return true;
+    const shrunkExisting = shrinkPolygon(g.vertices, OVERLAP_SHRINK);
 
-    for (const v of newVerts) {
-      if (pointInPolygon(v.x, v.y, g.vertices)) return true;
+    if (pointInPolygon(newCenter.x, newCenter.y, shrunkExisting)) return true;
+    if (pointInPolygon(g.center.x, g.center.y, shrunkNew)) return true;
+
+    for (const v of shrunkNew) {
+      if (pointInPolygon(v.x, v.y, shrunkExisting)) return true;
     }
-    for (const v of g.vertices) {
-      if (pointInPolygon(v.x, v.y, newVerts)) return true;
+    for (const v of shrunkExisting) {
+      if (pointInPolygon(v.x, v.y, shrunkNew)) return true;
     }
 
-    if (polygonsEdgeIntersect(newVerts, g.vertices)) return true;
+    if (polygonsEdgeIntersect(shrunkNew, shrunkExisting)) return true;
   }
   return false;
 }
