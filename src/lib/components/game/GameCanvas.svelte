@@ -281,7 +281,9 @@
 		<div class="side-panel" class:mobile-hidden={mobileTab !== 'panel'}>
 			<ShopPanel />
 			<ComboPanel />
+			{#if gameState.prestige.level >= 1}
 			<SkillPanel bind:open={skillTreeOpen} />
+		{/if}
 			<CyberButton variant="ghost" onclick={() => (achievementsOpen = true)}>
 				{#snippet children()}
 					🏆 ACHIEVEMENTS
@@ -451,6 +453,12 @@
 		font-size: 10px;
 		color: var(--color-green);
 		opacity: 0.9;
+		animation: rate-pulse 2s ease-in-out infinite;
+	}
+
+	@keyframes rate-pulse {
+		0%, 100% { opacity: 0.7; }
+		50% { opacity: 1; text-shadow: 0 0 4px rgba(68, 255, 136, 0.3); }
 	}
 
 	.next-goal {

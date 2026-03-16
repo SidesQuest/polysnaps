@@ -9,5 +9,62 @@
 	</head>
 	<body>
 		%sveltekit.body%
+		<style>
+			.splash-screen {
+				position: fixed;
+				inset: 0;
+				z-index: 99999;
+				background: #0e1024;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 16px;
+				transition: opacity 0.5s;
+			}
+			.splash-screen.hidden {
+				opacity: 0;
+				pointer-events: none;
+			}
+			.splash-title {
+				font-family: "Press Start 2P", monospace;
+				font-size: 18px;
+				color: #6cb4ff;
+				letter-spacing: 4px;
+				text-shadow: 0 0 16px rgba(108, 180, 255, 0.5);
+			}
+			.splash-sub {
+				font-family: "Press Start 2P", monospace;
+				font-size: 9px;
+				color: #a0a0cc;
+				letter-spacing: 2px;
+			}
+			.splash-dots {
+				font-family: "Press Start 2P", monospace;
+				font-size: 10px;
+				color: #6cb4ff;
+				animation: dots 1.5s steps(4) infinite;
+			}
+			@keyframes dots {
+				0% { content: ""; }
+				25% { opacity: 0.3; }
+				50% { opacity: 0.6; }
+				75% { opacity: 1; }
+				100% { opacity: 0.3; }
+			}
+		</style>
+		<div class="splash-screen" id="splash">
+			<div class="splash-title">◆ POLYSNAPS ◆</div>
+			<div class="splash-sub">Snap. Flow. Grow.</div>
+			<div class="splash-dots">loading...</div>
+		</div>
+		<script>
+			window.addEventListener('load', function() {
+				setTimeout(function() {
+					var s = document.getElementById('splash');
+					if (s) { s.classList.add('hidden'); setTimeout(function() { s.remove(); }, 600); }
+				}, 800);
+			});
+		</script>
 	</body>
 </html>

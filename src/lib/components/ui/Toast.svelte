@@ -66,18 +66,20 @@
 	}
 
 	.toast-big {
-		padding: 14px 24px;
-		animation: toast-big-in 0.4s ease-out, toast-out 0.4s ease-in 3s forwards;
+		padding: 16px 28px;
+		animation: toast-big-in 0.5s ease-out, toast-out 0.4s ease-in 4s forwards;
 		border-width: 3px;
+		background: rgba(11, 11, 25, 0.98);
 	}
 
 	.toast-big .toast-msg {
-		font-size: 12px;
+		font-size: 13px;
+		letter-spacing: 1px;
 	}
 
 	.toast-icon-big {
-		font-size: 22px;
-		animation: icon-bounce 0.5s ease-out;
+		font-size: 26px;
+		animation: icon-bounce 0.6s ease-out;
 	}
 
 	@keyframes toast-in {
