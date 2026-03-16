@@ -163,11 +163,20 @@
 
 			const pathStr = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
 			const depth = getNodeDepth(leaf.node.id);
-			const color = getLayerColor(depth);
+			let resColor = getLayerColor(depth);
+			let traceNode = leaf.node;
+			while (traceNode && traceNode.parentId && traceNode.parentId !== 'core') {
+				traceNode = gameState.nodes.find((n) => n.id === traceNode.parentId);
+			}
+			if (traceNode && traceNode.parentId === 'core') {
+				const resKey = getEdgeResource(traceNode.edgeIndex);
+				const resDef = RESOURCE_DEFS[resKey];
+				if (resDef) resColor = resDef.color;
+			}
 			const segCount = points.length - 1;
 			const dur = 1.2 + segCount * 0.5;
 
-			return { id: leaf.node.id, path: pathStr, color, dur, depth };
+			return { id: leaf.node.id, path: pathStr, color: resColor, dur, depth };
 		});
 	});
 

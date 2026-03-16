@@ -127,7 +127,26 @@
 			recordOnlineTime();
 		};
 	});
+
+	function handleKeydown(e) {
+		if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+		if (skillTreeOpen || achievementsOpen || challengesOpen || menuOpen) {
+			if (e.key === 'Escape') {
+				skillTreeOpen = false;
+				achievementsOpen = false;
+				challengesOpen = false;
+				menuOpen = false;
+			}
+			return;
+		}
+		switch(e.key) {
+			case 'm': case 'M': menuOpen = true; break;
+			case 'Escape': break;
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <div class="game-canvas">
 	{#if prestigePhase === 'flash'}
