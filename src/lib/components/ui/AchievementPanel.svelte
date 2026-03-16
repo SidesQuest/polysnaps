@@ -45,28 +45,28 @@
 	.ach-overlay {
 		position: fixed;
 		inset: 0;
-		background: rgba(5, 5, 15, 0.85);
+		background: rgba(5, 5, 15, 0.88);
 		z-index: 200;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		animation: ach-fade 0.15s ease-out;
-		backdrop-filter: blur(4px);
+		backdrop-filter: blur(6px);
 	}
 
 	.ach-container {
-		width: 520px;
-		max-width: 92vw;
-		max-height: 80vh;
+		width: 560px;
+		max-width: 94vw;
+		max-height: 85vh;
 		animation: ach-slide 0.2s ease-out;
 	}
 
 	.ach-body {
-		padding: 14px 16px;
+		padding: 16px 18px;
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		max-height: 65vh;
+		gap: 14px;
+		max-height: 70vh;
 		overflow-y: auto;
 	}
 
@@ -74,38 +74,43 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding-bottom: 8px;
-		border-bottom: 1px solid #2a2f55;
+		padding-bottom: 10px;
+		border-bottom: 1px solid #2a3058;
 	}
 
 	.ach-count {
 		font-family: var(--font-pixel);
-		font-size: 12px;
+		font-size: 14px;
 		color: var(--color-gold);
-		text-shadow: 0 0 8px rgba(255, 221, 85, 0.3);
+		text-shadow: 0 0 10px rgba(255, 221, 85, 0.4);
 	}
 
 	.ach-mult {
 		font-family: var(--font-pixel);
-		font-size: 10px;
+		font-size: 11px;
 		color: var(--color-green);
 	}
 
 	.ach-list {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-		gap: 8px;
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+		gap: 10px;
 	}
 
 	.ach-item {
 		display: flex;
 		align-items: flex-start;
 		gap: 10px;
-		padding: 10px 12px;
+		padding: 12px 14px;
 		background: rgba(255, 255, 255, 0.02);
-		border: 1px solid #2a2f55;
-		border-radius: 4px;
-		transition: border-color 0.15s;
+		border: 1px solid #2a3058;
+		border-radius: 6px;
+		transition: border-color 0.15s, background 0.15s;
+	}
+
+	.ach-item:not(.locked):hover {
+		border-color: rgba(255, 221, 85, 0.3);
+		background: rgba(255, 221, 85, 0.03);
 	}
 
 	.ach-item:not(.locked) {
@@ -117,7 +122,7 @@
 	}
 
 	.ach-icon {
-		font-size: 18px;
+		font-size: 20px;
 		flex-shrink: 0;
 		margin-top: 1px;
 	}
@@ -125,27 +130,27 @@
 	.ach-info {
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
+		gap: 4px;
 		flex: 1;
 		min-width: 0;
 	}
 
 	.ach-name {
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 10px;
 		color: var(--color-text);
 	}
 
 	.ach-desc {
 		font-family: var(--font-pixel);
-		font-size: 7px;
+		font-size: 9px;
 		color: var(--color-text-dim);
-		line-height: 1.4;
+		line-height: 1.5;
 	}
 
 	.ach-bonus {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 10px;
 		color: var(--color-green);
 		flex-shrink: 0;
 		margin-top: 2px;
@@ -159,5 +164,11 @@
 	@keyframes ach-slide {
 		from { opacity: 0; transform: translateY(-10px) scale(0.97); }
 		to { opacity: 1; transform: translateY(0) scale(1); }
+	}
+
+	@media (max-width: 768px) {
+		.ach-list {
+			grid-template-columns: 1fr;
+		}
 	}
 </style>

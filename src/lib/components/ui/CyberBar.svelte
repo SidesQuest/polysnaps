@@ -20,59 +20,57 @@
 	.bar {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 8px;
 		width: 100%;
 	}
 
 	.bar-label {
 		font-family: var(--font-pixel);
-		font-size: 7px;
-		color: #8888bb;
+		font-size: 9px;
+		color: var(--color-text-dim);
 		white-space: nowrap;
 		min-width: 30px;
 	}
 
 	.bar-track {
 		flex: 1;
-		height: 10px;
-		background: #0e1020;
-		border: 2px solid #2a2f55;
-		border-radius: 1px;
+		height: 14px;
+		background: #0c0e1c;
+		border: 2px solid #2a3058;
+		border-radius: 3px;
 		position: relative;
 		overflow: hidden;
-		image-rendering: pixelated;
 	}
 
 	.bar-fill {
 		height: 100%;
-		border-radius: 0;
+		border-radius: 1px;
 		transition: width 0.3s;
-		image-rendering: pixelated;
 	}
 
 	.bar[data-color='cyan'] .bar-fill {
 		background: linear-gradient(180deg, #4cf 0%, #28a 100%);
-		box-shadow: 0 0 4px rgba(68, 204, 255, 0.4);
+		box-shadow: 0 0 6px rgba(68, 204, 255, 0.5);
 	}
 
 	.bar[data-color='red'] .bar-fill {
 		background: linear-gradient(180deg, #f64 0%, #c32 100%);
-		box-shadow: 0 0 4px rgba(255, 100, 50, 0.4);
+		box-shadow: 0 0 6px rgba(255, 100, 50, 0.5);
 	}
 
 	.bar[data-color='green'] .bar-fill {
 		background: linear-gradient(180deg, #5f8 0%, #3a6 100%);
-		box-shadow: 0 0 4px rgba(85, 255, 130, 0.4);
+		box-shadow: 0 0 6px rgba(85, 255, 130, 0.5);
 	}
 
 	.bar[data-color='gold'] .bar-fill {
 		background: linear-gradient(180deg, #fd5 0%, #ca3 100%);
-		box-shadow: 0 0 4px rgba(255, 221, 85, 0.4);
+		box-shadow: 0 0 6px rgba(255, 221, 85, 0.5);
 	}
 
 	.bar[data-color='purple'] .bar-fill {
 		background: linear-gradient(180deg, #a5f 0%, #73c 100%);
-		box-shadow: 0 0 4px rgba(170, 85, 255, 0.4);
+		box-shadow: 0 0 6px rgba(170, 85, 255, 0.5);
 	}
 
 	.bar-shine {
@@ -87,9 +85,9 @@
 
 	.bar-pct {
 		font-family: var(--font-pixel);
-		font-size: 7px;
-		color: #aab;
-		min-width: 28px;
+		font-size: 9px;
+		color: var(--color-text);
+		min-width: 32px;
 		text-align: right;
 	}
 </style>

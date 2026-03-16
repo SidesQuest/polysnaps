@@ -18,7 +18,7 @@
 	.pts {
 		margin-left: auto;
 		color: var(--color-gold);
-		font-size: 8px;
-		text-shadow: 0 0 6px rgba(255,221,85,0.3);
+		font-size: 10px;
+		text-shadow: 0 0 8px rgba(255,221,85,0.4);
 	}
 </style>

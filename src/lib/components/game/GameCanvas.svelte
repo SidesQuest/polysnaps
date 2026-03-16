@@ -37,6 +37,7 @@
 	let usePixi = $state(false);
 	let prevComboLen = $state(0);
 	let allAchievements = getAllAchievements();
+	let mobileTab = $state('canvas');
 
 	function handlePrestige() {
 		prestigeFlash = true;
@@ -185,7 +186,7 @@
 			{/each}
 		</div>
 		<div class="hud-right">
-			<span class="hud-shapes">{placed} shapes</span>
+			<span class="hud-shapes">{placed} {placed === 1 ? 'shape' : 'shapes'}</span>
 			{#if gameState.prestige.level > 0}
 				<span class="prestige-badge">P{gameState.prestige.level} · 🔮 {gameState.prestige.currency}</span>
 			{/if}
@@ -195,15 +196,24 @@
 		</div>
 	</div>
 
+	<div class="mobile-tabs">
+		<button class="mobile-tab" class:active={mobileTab === 'canvas'} onclick={() => (mobileTab = 'canvas')}>
+			◆ MAP
+		</button>
+		<button class="mobile-tab" class:active={mobileTab === 'panel'} onclick={() => (mobileTab = 'panel')}>
+			⚙ BUILD
+		</button>
+	</div>
+
 	<div class="main-area">
-		<div class="network-area">
+		<div class="network-area" class:mobile-hidden={mobileTab !== 'canvas'}>
 			{#if usePixi}
 				<PixiCanvas />
 			{:else}
 				<ShapeNetwork />
 			{/if}
 		</div>
-		<div class="side-panel">
+		<div class="side-panel" class:mobile-hidden={mobileTab !== 'panel'}>
 			<ShopPanel />
 			<ComboPanel />
 			<SkillPanel bind:open={skillTreeOpen} />
@@ -244,52 +254,56 @@
 		z-index: 100;
 		cursor: pointer;
 		animation: popup-in 0.2s ease-out;
-		width: 280px;
+		width: 320px;
+		max-width: 90vw;
 	}
 
 	.offline-body {
-		padding: 12px 16px;
+		padding: 16px 20px;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 6px;
+		gap: 8px;
 	}
 
 	.offline-time {
-		font-size: 8px;
+		font-size: 10px;
 		color: var(--color-text-dim);
 	}
 
 	.offline-earned {
-		font-size: 11px;
+		font-size: 13px;
+		font-weight: normal;
 	}
 
 	.offline-earned.energy { color: var(--color-accent); }
-	.offline-earned.flux { color: #ff44aa; }
-	.offline-earned.prisms { color: #aa44ff; }
+	.offline-earned.flux { color: #ff66bb; }
+	.offline-earned.prisms { color: #bb66ff; }
 
 	.offline-doubled {
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 11px;
 		color: var(--color-green);
-		text-shadow: 0 0 6px rgba(85, 255, 153, 0.3);
+		text-shadow: 0 0 8px rgba(85, 255, 153, 0.4);
 	}
 
 	.offline-dismiss-btn {
 		font-family: var(--font-pixel);
-		font-size: 7px;
+		font-size: 9px;
 		color: var(--color-text-dim);
 		background: transparent;
 		border: 1px solid var(--color-border);
-		border-radius: 2px;
-		padding: 4px 12px;
+		border-radius: 4px;
+		padding: 8px 20px;
 		cursor: pointer;
-		margin-top: 4px;
+		margin-top: 6px;
+		transition: color 0.15s, border-color 0.15s, background 0.15s;
 	}
 
 	.offline-dismiss-btn:hover {
 		color: var(--color-text);
 		border-color: var(--color-border-light);
+		background: rgba(255,255,255,0.03);
 	}
 
 	.hud {
@@ -299,24 +313,25 @@
 		gap: 16px;
 		z-index: 10;
 		flex-shrink: 0;
-		background: rgba(20, 20, 32, 0.95);
+		background: rgba(14, 16, 36, 0.97);
 		border-bottom: 2px solid var(--color-border);
+		backdrop-filter: blur(8px);
 	}
 
 	.menu-btn {
-		width: 40px;
-		height: 40px;
+		width: 44px;
+		height: 44px;
 		background: var(--color-surface);
 		border: 2px solid var(--color-border);
-		border-radius: 4px;
+		border-radius: 6px;
 		cursor: pointer;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 4px;
+		padding: 6px;
 		flex-shrink: 0;
-		transition: border-color 0.15s, background 0.15s;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+		transition: border-color 0.15s, background 0.15s, transform 0.1s;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 	}
 
 	.menu-btn:hover {
@@ -325,7 +340,7 @@
 	}
 
 	.menu-btn:active {
-		transform: translateY(1px);
+		transform: scale(0.95);
 	}
 
 	.menu-btn img {
@@ -336,21 +351,23 @@
 
 	.resources-row {
 		display: flex;
-		gap: 20px;
+		gap: 24px;
 		flex: 1;
+		overflow-x: auto;
 	}
 
 	.resource-display {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: 3px;
+		min-width: 0;
 	}
 
 	.resource-label {
 		font-size: 10px;
 		letter-spacing: 2px;
 		color: var(--res-color);
-		opacity: 0.8;
+		opacity: 0.9;
 	}
 
 	.resource-nums {
@@ -360,20 +377,22 @@
 	}
 
 	.resource-value {
-		font-size: 20px;
+		font-size: 18px;
 		color: var(--res-color);
+		text-shadow: 0 0 8px color-mix(in srgb, var(--res-color) 30%, transparent);
 	}
 
 	.resource-rate {
 		font-size: 10px;
 		color: var(--color-green);
+		opacity: 0.9;
 	}
 
 	.hud-right {
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
-		font-size: 10px;
+		font-size: 11px;
 		color: var(--color-text-dim);
 		text-align: right;
 		flex-shrink: 0;
@@ -381,17 +400,18 @@
 
 	.hud-shapes {
 		font-size: 11px;
+		color: var(--color-text);
 	}
 
 	.prestige-badge {
 		font-size: 12px;
 		color: var(--color-gold);
-		text-shadow: 0 0 6px rgba(255,221,85,0.3);
+		text-shadow: 0 0 8px rgba(255,221,85,0.35);
 	}
 
 	.skill-points {
 		font-size: 11px;
-		color: #ff44aa;
+		color: #ff66bb;
 	}
 
 	.side-count {
@@ -400,11 +420,42 @@
 		color: var(--color-text-dim);
 	}
 
+	.mobile-tabs {
+		display: none;
+		z-index: 10;
+		background: rgba(14, 16, 36, 0.97);
+		border-bottom: 2px solid var(--color-border);
+	}
+
+	.mobile-tab {
+		flex: 1;
+		padding: 10px;
+		font-family: var(--font-pixel);
+		font-size: 11px;
+		color: var(--color-text-dim);
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		transition: color 0.15s, background 0.15s;
+		border-bottom: 3px solid transparent;
+	}
+
+	.mobile-tab.active {
+		color: var(--color-accent);
+		background: rgba(100, 140, 255, 0.06);
+		border-bottom-color: var(--color-accent);
+	}
+
+	.mobile-tab:not(.active):hover {
+		color: var(--color-text);
+		background: rgba(255, 255, 255, 0.02);
+	}
+
 	.main-area {
 		flex: 1;
 		display: flex;
-		padding: 0 8px 8px;
-		gap: 8px;
+		padding: 0 10px 10px;
+		gap: 10px;
 		overflow: hidden;
 	}
 
@@ -420,11 +471,11 @@
 	.side-panel {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 10px;
 		flex-shrink: 0;
 		overflow-y: auto;
 		max-height: 100%;
-		width: 320px;
+		width: 340px;
 		padding: 4px;
 	}
 
@@ -451,6 +502,52 @@
 		to {
 			opacity: 1;
 			transform: translate(-50%, -50%) scale(1);
+		}
+	}
+
+	@media (max-width: 768px) {
+		.hud {
+			padding: 8px 10px;
+			gap: 10px;
+		}
+
+		.resources-row {
+			gap: 12px;
+		}
+
+		.resource-value {
+			font-size: 14px;
+		}
+
+		.resource-label {
+			font-size: 9px;
+			letter-spacing: 1px;
+		}
+
+		.hud-right {
+			display: none;
+		}
+
+		.mobile-tabs {
+			display: flex;
+		}
+
+		.main-area {
+			padding: 0;
+			gap: 0;
+		}
+
+		.network-area {
+			flex: 1;
+		}
+
+		.side-panel {
+			width: 100%;
+			padding: 10px;
+		}
+
+		.mobile-hidden {
+			display: none !important;
 		}
 	}
 </style>

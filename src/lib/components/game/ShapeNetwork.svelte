@@ -622,10 +622,10 @@
 
 	.zone-label-name {
 		font-family: var(--font-pixel);
-		font-size: 5px;
+		font-size: 5.5px;
 		text-anchor: middle;
 		pointer-events: none;
-		opacity: 0.5;
+		opacity: 0.6;
 	}
 
 	.flow-particle {
@@ -667,11 +667,12 @@
 	}
 
 	.core-text {
-		fill: var(--color-text-dim);
+		fill: var(--color-text);
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 10px;
 		text-anchor: middle;
 		pointer-events: none;
+		opacity: 0.8;
 	}
 
 	.core-resource-icon {
@@ -711,34 +712,35 @@
 	}
 
 	.empty-slot {
-		fill: transparent;
+		fill: rgba(255, 221, 85, 0.03);
 		stroke: var(--color-gold);
-		stroke-width: 1;
-		stroke-dasharray: 4 4;
-		opacity: 0.3;
+		stroke-width: 1.2;
+		stroke-dasharray: 5 4;
+		opacity: 0.45;
 		cursor: pointer;
 		outline: none;
+		transition: opacity 0.15s, fill 0.15s;
 	}
 
 	.empty-slot:hover {
 		opacity: 1;
-		fill: rgba(255, 221, 85, 0.08);
+		fill: rgba(255, 221, 85, 0.1);
 		animation: slot-blink 0.6s steps(2) infinite;
 	}
 
 	.slot-shape-hint {
 		fill: var(--color-gold);
+		font-size: 8px;
+		text-anchor: middle;
+		pointer-events: none;
+		opacity: 0.6;
+	}
+
+	.slot-resource-hint {
 		font-size: 7px;
 		text-anchor: middle;
 		pointer-events: none;
 		opacity: 0.5;
-	}
-
-	.slot-resource-hint {
-		font-size: 6px;
-		text-anchor: middle;
-		pointer-events: none;
-		opacity: 0.4;
 	}
 
 	.tooltip {
@@ -747,36 +749,36 @@
 
 	.tooltip-title {
 		font-family: var(--font-pixel);
-		font-size: 5px;
+		font-size: 5.5px;
 		text-anchor: middle;
 	}
 
 	.tooltip-prod {
 		font-family: var(--font-pixel);
-		font-size: 4.5px;
+		font-size: 5px;
 		fill: var(--color-green);
 		text-anchor: middle;
 	}
 
 	.tooltip-subtitle {
 		font-family: var(--font-pixel);
-		font-size: 4px;
+		font-size: 4.5px;
 		fill: var(--color-text-dim);
 		text-anchor: middle;
 	}
 
 	.tooltip-zone {
 		font-family: var(--font-pixel);
-		font-size: 4px;
+		font-size: 4.5px;
 		fill: var(--color-gold);
 		text-anchor: middle;
 	}
 
 	.controls-hint {
 		font-family: var(--font-pixel);
-		font-size: 4px;
-		fill: var(--color-text-dim);
-		opacity: 0.3;
+		font-size: 5px;
+		fill: var(--color-text);
+		opacity: 0.45;
 	}
 
 	.click-ripple {
@@ -924,33 +926,36 @@
 
 	.shape-selector {
 		position: absolute;
-		bottom: 12px;
+		bottom: 14px;
 		left: 50%;
 		transform: translateX(-50%);
 		display: flex;
-		gap: 6px;
-		background: rgba(20, 20, 32, 0.95);
+		gap: 8px;
+		background: rgba(14, 16, 36, 0.97);
 		border: 2px solid var(--color-border);
-		border-radius: 6px;
-		padding: 8px 12px;
-		backdrop-filter: blur(6px);
+		border-radius: 8px;
+		padding: 10px 14px;
+		backdrop-filter: blur(8px);
+		box-shadow: 0 4px 20px rgba(0,0,0,0.5);
 	}
 
 	.shape-btn {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 4px;
-		padding: 8px 14px;
+		gap: 5px;
+		padding: 10px 16px;
 		background: transparent;
 		border: 2px solid var(--color-border);
-		border-radius: 4px;
+		border-radius: 6px;
 		cursor: pointer;
 		font-family: var(--font-pixel);
 		color: var(--color-text-dim);
 		outline: none;
 		opacity: 0.5;
-		transition: border-color 0.15s, opacity 0.15s;
+		transition: border-color 0.15s, opacity 0.15s, background 0.15s;
+		min-width: 44px;
+		min-height: 44px;
 	}
 
 	.shape-btn.affordable {
@@ -960,27 +965,56 @@
 	.shape-btn.active {
 		border-color: var(--color-gold);
 		color: var(--color-gold);
-		background: rgba(255, 221, 85, 0.08);
+		background: rgba(255, 221, 85, 0.1);
 		opacity: 1;
+		box-shadow: 0 0 8px rgba(255, 221, 85, 0.2);
 	}
 
 	.shape-btn:hover {
 		border-color: var(--color-accent);
+		background: rgba(100, 140, 255, 0.06);
 		opacity: 1;
 	}
 
 	.shape-icon {
-		font-size: 20px;
+		font-size: 22px;
 	}
 
 	.shape-label {
-		font-size: 8px;
+		font-size: 9px;
 		letter-spacing: 1px;
 	}
 
 	.shape-cost {
-		font-size: 8px;
+		font-size: 9px;
 		display: flex;
 		gap: 6px;
+	}
+
+	@media (max-width: 768px) {
+		.shape-selector {
+			bottom: 10px;
+			padding: 8px 10px;
+			gap: 6px;
+			max-width: 96vw;
+			overflow-x: auto;
+		}
+
+		.shape-btn {
+			padding: 8px 12px;
+			min-width: 60px;
+		}
+
+		.shape-icon {
+			font-size: 18px;
+		}
+
+		.shape-label {
+			font-size: 8px;
+		}
+
+		.shape-cost {
+			font-size: 8px;
+		}
 	}
 </style>

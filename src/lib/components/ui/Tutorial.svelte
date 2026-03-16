@@ -78,35 +78,35 @@
 
 	.tutorial-box {
 		pointer-events: auto;
-		background: rgba(11, 11, 25, 0.95);
+		background: rgba(11, 11, 25, 0.97);
 		border: 2px solid var(--color-accent);
-		border-radius: 3px;
-		padding: 12px 16px;
-		min-width: 260px;
-		max-width: 320px;
+		border-radius: 6px;
+		padding: 14px 20px;
+		min-width: 280px;
+		max-width: 360px;
 		box-shadow:
-			0 0 16px rgba(136, 170, 255, 0.2),
-			inset 0 0 8px rgba(136, 170, 255, 0.03);
+			0 0 20px rgba(136, 170, 255, 0.25),
+			inset 0 0 10px rgba(136, 170, 255, 0.04);
 		animation: tut-bounce 0.3s ease-out;
 	}
 
 	.tutorial-step-row {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		margin-bottom: 10px;
+		gap: 12px;
+		margin-bottom: 12px;
 	}
 
 	.tutorial-icon {
-		font-size: 20px;
+		font-size: 24px;
 		flex-shrink: 0;
 	}
 
 	.tutorial-text {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 10px;
 		color: var(--color-text);
-		line-height: 1.6;
+		line-height: 1.7;
 	}
 
 	.tutorial-controls {
@@ -117,43 +117,46 @@
 
 	.tutorial-progress {
 		font-family: var(--font-pixel);
-		font-size: 7px;
+		font-size: 9px;
 		color: var(--color-text-dim);
 	}
 
 	.tutorial-btns {
 		display: flex;
-		gap: 8px;
+		gap: 10px;
 	}
 
 	.tutorial-skip {
 		font-family: var(--font-pixel);
-		font-size: 7px;
+		font-size: 9px;
 		color: var(--color-text-dim);
 		background: transparent;
 		border: none;
 		cursor: pointer;
-		padding: 4px 6px;
+		padding: 6px 8px;
+		min-height: 32px;
+		transition: color 0.15s;
 	}
 
 	.tutorial-skip:hover {
 		color: var(--color-text);
-		text-decoration: underline;
 	}
 
 	.tutorial-next {
 		font-family: var(--font-pixel);
-		font-size: 7px;
+		font-size: 9px;
 		color: var(--color-accent);
-		background: rgba(136, 170, 255, 0.08);
+		background: rgba(136, 170, 255, 0.1);
 		border: 1px solid var(--color-accent);
-		border-radius: 2px;
+		border-radius: 4px;
 		cursor: pointer;
-		padding: 4px 10px;
+		padding: 6px 14px;
+		min-height: 32px;
+		transition: background 0.15s;
 	}
 
 	.tutorial-next:hover {
-		background: rgba(136, 170, 255, 0.15);
+		background: rgba(136, 170, 255, 0.2);
 	}
 
 	.tutorial-next:active {
@@ -164,5 +167,17 @@
 		0% { opacity: 0; transform: translateY(8px); }
 		70% { transform: translateY(-2px); }
 		100% { opacity: 1; transform: translateY(0); }
+	}
+
+	@media (max-width: 768px) {
+		.tutorial-overlay {
+			bottom: 70px;
+			width: 92vw;
+		}
+
+		.tutorial-box {
+			min-width: auto;
+			max-width: 100%;
+		}
 	}
 </style>

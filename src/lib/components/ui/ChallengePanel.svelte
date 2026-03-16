@@ -115,28 +115,28 @@
 	.ch-overlay {
 		position: fixed;
 		inset: 0;
-		background: rgba(5, 5, 15, 0.85);
+		background: rgba(5, 5, 15, 0.88);
 		z-index: 200;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		animation: ch-fade 0.15s ease-out;
-		backdrop-filter: blur(4px);
+		backdrop-filter: blur(6px);
 	}
 
 	.ch-container {
-		width: 420px;
-		max-width: 92vw;
-		max-height: 80vh;
+		width: 460px;
+		max-width: 94vw;
+		max-height: 85vh;
 		animation: ch-slide 0.2s ease-out;
 	}
 
 	.ch-body {
-		padding: 14px 16px;
+		padding: 16px 18px;
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		max-height: 65vh;
+		gap: 14px;
+		max-height: 70vh;
 		overflow-y: auto;
 	}
 
@@ -144,110 +144,115 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding-bottom: 8px;
-		border-bottom: 1px solid #2a2f55;
+		padding-bottom: 10px;
+		border-bottom: 1px solid #2a3058;
 	}
 
 	.ch-count {
 		font-family: var(--font-pixel);
-		font-size: 12px;
-		color: #ff44aa;
-		text-shadow: 0 0 8px rgba(255, 68, 170, 0.3);
+		font-size: 14px;
+		color: #ff66bb;
+		text-shadow: 0 0 10px rgba(255, 68, 170, 0.4);
 	}
 
 	.ch-locked {
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 10px;
 		color: var(--color-text-dim);
 	}
 
 	.ch-active {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 12px;
+		gap: 10px;
+		padding: 14px;
 		background: rgba(255, 68, 170, 0.05);
 		border: 1px solid #5a2a3a;
-		border-radius: 4px;
+		border-radius: 6px;
 	}
 
 	.ch-active-header {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: 12px;
 	}
 
 	.ch-active-label {
 		font-family: var(--font-pixel);
-		font-size: 8px;
-		color: #ff44aa;
+		font-size: 9px;
+		color: #ff66bb;
 		background: rgba(255, 68, 170, 0.15);
-		padding: 3px 8px;
-		border-radius: 3px;
+		padding: 4px 10px;
+		border-radius: 4px;
 	}
 
 	.ch-active-name {
 		font-family: var(--font-pixel);
-		font-size: 11px;
+		font-size: 12px;
 		color: var(--color-text);
 	}
 
 	.ch-active-desc {
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 10px;
 		color: var(--color-text-dim);
-		line-height: 1.4;
+		line-height: 1.5;
 	}
 
 	.ch-modifiers {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 6px;
+		gap: 8px;
 	}
 
 	.ch-mod {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 9px;
 		color: var(--color-red);
 		background: rgba(255, 85, 119, 0.08);
-		padding: 3px 8px;
-		border-radius: 3px;
+		padding: 4px 10px;
+		border-radius: 4px;
 		border: 1px solid #4a2030;
 	}
 
 	.ch-reward {
 		display: flex;
-		gap: 8px;
+		gap: 10px;
 		align-items: center;
 	}
 
 	.ch-reward-label {
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 10px;
 		color: var(--color-text-dim);
 	}
 
 	.ch-reward-value {
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 10px;
 		color: var(--color-green);
 	}
 
 	.ch-list {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 10px;
 	}
 
 	.ch-item {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
-		padding: 10px 12px;
+		gap: 14px;
+		padding: 12px 14px;
 		background: rgba(255, 255, 255, 0.02);
-		border: 1px solid #2a2f55;
-		border-radius: 4px;
+		border: 1px solid #2a3058;
+		border-radius: 6px;
+		transition: border-color 0.15s;
+	}
+
+	.ch-item:hover:not(.done) {
+		border-color: var(--color-border-light);
 	}
 
 	.ch-item.done {
@@ -257,43 +262,43 @@
 	.ch-item-info {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 5px;
 		flex: 1;
 	}
 
 	.ch-item-name {
 		font-family: var(--font-pixel);
-		font-size: 10px;
+		font-size: 11px;
 		color: var(--color-text);
 	}
 
 	.ch-item-desc {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 9px;
 		color: var(--color-text-dim);
-		line-height: 1.3;
+		line-height: 1.4;
 	}
 
 	.ch-item-reward {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 9px;
 		color: var(--color-green);
 	}
 
 	.ch-completed-header {
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 10px;
 		color: var(--color-text-dim);
-		letter-spacing: 2px;
-		margin-top: 6px;
+		letter-spacing: 3px;
+		margin-top: 8px;
 	}
 
 	.ch-empty {
 		font-family: var(--font-pixel);
-		font-size: 10px;
+		font-size: 11px;
 		color: var(--color-text-dim);
 		text-align: center;
-		padding: 16px;
+		padding: 20px;
 	}
 
 	@keyframes ch-fade {

@@ -1,20 +1,21 @@
 @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 
 :root {
-  --color-bg: #141420;
-  --color-surface: #1c2040;
-  --color-surface-hover: #262b55;
-  --color-border: #3a3f6a;
-  --color-border-light: #4a5080;
-  --color-text: #d8d8ff;
-  --color-text-dim: #8888bb;
-  --color-accent: #88aaff;
-  --color-accent-glow: #88aaff44;
-  --color-gold: #ffdd55;
-  --color-green: #55ff99;
+  --color-bg: #0e1024;
+  --color-surface: #181c3a;
+  --color-surface-hover: #222755;
+  --color-border: #3a4070;
+  --color-border-light: #5060a0;
+  --color-text: #e8e8ff;
+  --color-text-dim: #a0a0cc;
+  --color-accent: #6cb4ff;
+  --color-accent-glow: #6cb4ff44;
+  --color-gold: #ffd644;
+  --color-green: #44ff88;
   --color-red: #ff5577;
   --font-pixel: "Press Start 2P", monospace;
   --font-cyber: "CyberpunkCraftpix", "Press Start 2P", monospace;
+  --panel-radius: 6px;
 }
 
 * {
@@ -36,11 +37,11 @@ body {
   width: 100%;
   height: 100%;
   background-color: var(--color-bg);
-  background-image: radial-gradient(circle, #353555 1.2px, transparent 1.2px);
-  background-size: 18px 18px;
+  background-image: radial-gradient(circle, #2a2a48 1px, transparent 1px);
+  background-size: 20px 20px;
   color: var(--color-text);
   font-family: var(--font-pixel);
-  font-size: 10px;
+  font-size: 11px;
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
@@ -61,8 +62,8 @@ body {
     0deg,
     transparent,
     transparent 2px,
-    rgba(0, 0, 0, 0.12) 2px,
-    rgba(0, 0, 0, 0.12) 4px
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
   );
   mix-blend-mode: multiply;
   animation: crt-flicker 8s linear infinite;
@@ -74,8 +75,8 @@ body {
   inset: 0;
   background: radial-gradient(
     ellipse at center,
-    transparent 55%,
-    rgba(0, 0, 0, 0.45) 100%
+    transparent 60%,
+    rgba(0, 0, 0, 0.35) 100%
   );
 }
 
@@ -91,7 +92,7 @@ body {
     opacity: 1;
   }
   93% {
-    opacity: 0.9;
+    opacity: 0.92;
   }
   94% {
     opacity: 1;
@@ -99,14 +100,17 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 ::-webkit-scrollbar-track {
   background: var(--color-bg);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-border-light);
-  border-radius: 3px;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
 }
 
 button {
@@ -115,18 +119,24 @@ button {
 
 .game-panel {
   background: var(--color-surface);
-  border: 3px solid var(--color-border);
-  border-radius: 3px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--panel-radius);
   box-shadow:
     inset 1px 1px 0 #2a2f55,
-    inset -1px -1px 0 #14183a,
-    0 2px 8px rgba(0, 0, 0, 0.5);
+    inset -1px -1px 0 #12163a,
+    0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 .game-panel-header {
-  padding: 8px 12px;
+  padding: 10px 14px;
   display: flex;
   align-items: center;
   border-bottom: 2px solid var(--color-border);
-  background: linear-gradient(180deg, #222750 0%, #1c2040 100%);
+  background: linear-gradient(180deg, #242850 0%, #1c2040 100%);
+}
+
+@media (max-width: 768px) {
+  html, body {
+    font-size: 12px;
+  }
 }
