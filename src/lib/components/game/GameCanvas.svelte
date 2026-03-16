@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { gameState, addResource, getProductionByResource, getUnlockedResources, loadStateFrom, getPlacedCount, tickGenerators, tickAutoSystems, tickFluxConvert, tickPuzzleChecks, tickPentagonStorage, tickAchievements, tickChallengeCheck, getPrestigeReward } from '$lib/game/state.svelte.js';
+	import { gameState, addResource, getProductionByResource, getUnlockedResources, loadStateFrom, getPlacedCount, tickGenerators, tickAutoSystems, tickFluxConvert, tickPuzzleChecks, tickPentagonStorage, tickAchievements, tickChallengeCheck, getPrestigeReward, getPrestigeThreshold } from '$lib/game/state.svelte.js';
 	import { startEngine, stopEngine, onTick } from '$lib/game/engine.js';
 	import { saveGame, loadGame, hasSave } from '$lib/game/save.js';
 	import { getOfflineSeconds, calculateOfflineEarnings, doubleOfflineEarnings, recordOnlineTime } from '$lib/game/offline.js';
@@ -28,6 +28,25 @@
 	let production = $derived(getProductionByResource());
 	let unlockedResources = $derived(getUnlockedResources());
 	let placed = $derived(getPlacedCount());
+	let nextGoal = $derived.by(() => {
+		const p = placed;
+		const totalEnergy = gameState.stats.totalEnergyEarned;
+		const threshold = getPrestigeThreshold ? getPrestigeThreshold() : Infinity;
+		const prestigePct = Math.min(100, (totalEnergy / threshold) * 100);
+
+		// Check shape milestones
+		const shapeMilestones = [3, 5, 10, 20, 50];
+		for (const m of shapeMilestones) {
+			if (p < m) return { label: `Place ${m} shapes`, progress: p, target: m, pct: (p / m) * 100 };
+		}
+
+		// Check prestige progress
+		if (prestigePct < 100) {
+			return { label: 'Prestige', progress: Math.round(prestigePct), target: 100, pct: prestigePct };
+		}
+
+		return { label: 'Prestige ready!', progress: 100, target: 100, pct: 100 };
+	});
 	let offlinePopup = $state(null);
 	let skillTreeOpen = $state(false);
 	let achievementsOpen = $state(false);
@@ -223,6 +242,14 @@
 				</div>
 			{/each}
 		</div>
+		{#if nextGoal}
+			<div class="next-goal">
+				<span class="next-goal-label">{nextGoal.label}</span>
+				<div class="next-goal-bar">
+					<div class="next-goal-fill" style="width: {nextGoal.pct}%"></div>
+				</div>
+			</div>
+		{/if}
 		<div class="hud-right">
 			<span class="hud-shapes">{placed} {placed === 1 ? 'shape' : 'shapes'}</span>
 			{#if gameState.prestige.level > 0}
@@ -426,6 +453,39 @@
 		opacity: 0.9;
 	}
 
+	.next-goal {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 4px 10px;
+		background: rgba(255, 221, 85, 0.06);
+		border: 1px solid rgba(255, 221, 85, 0.15);
+		border-radius: 4px;
+	}
+
+	.next-goal-label {
+		font-size: 9px;
+		color: var(--color-gold);
+		white-space: nowrap;
+		opacity: 0.8;
+	}
+
+	.next-goal-bar {
+		width: 60px;
+		height: 6px;
+		background: rgba(0,0,0,0.3);
+		border-radius: 3px;
+		overflow: hidden;
+	}
+
+	.next-goal-fill {
+		height: 100%;
+		background: var(--color-gold);
+		border-radius: 3px;
+		transition: width 0.5s ease;
+		box-shadow: 0 0 4px rgba(255, 221, 85, 0.4);
+	}
+
 	.hud-right {
 		display: flex;
 		flex-direction: column;
@@ -625,6 +685,10 @@
 	}
 
 	@media (max-width: 768px) {
+		.next-goal {
+			display: none;
+		}
+
 		.hud {
 			padding: 8px 10px;
 			gap: 10px;
