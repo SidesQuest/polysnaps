@@ -5,7 +5,7 @@
 	import { buildGeometryTree, getOpenSlots, verticesToString, getPolygonPointsString, getCoreVertices, SHAPE_DEFS } from '$lib/game/shapes.js';
 	import { isPointRevealed, FOG_CELL_SIZE, getRevealedCells } from '$lib/game/fog.js';
 	import { getZoneBonus } from '$lib/game/buffzones.js';
-	import { playClick } from '$lib/game/audio.js';
+	import { playClick, playError } from '$lib/game/audio.js';
 	import { formatNumber } from '$lib/utils/format.js';
 
 	const CORE_RADIUS = 50;
@@ -246,7 +246,11 @@
 			if (ok) {
 				const depth = slot.layer || 1;
 				spawnPlaceParticles(slot.center.x, slot.center.y, getLayerColor(depth));
+			} else {
+				playError();
 			}
+		} else {
+			playError();
 		}
 	}
 

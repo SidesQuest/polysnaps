@@ -87,8 +87,10 @@ const COMBO_DEFS = [
   {
     id: "max-level-5",
     name: "Forged",
-    description: "Upgrade any shape to level 5",
-    check: (nodes) => nodes.some((n) => n.id !== "core" && n.level >= 5),
+    description: "Reach tier level 5 in any layer",
+    check: (nodes, coreSides, state) =>
+      state?.tierLevels &&
+      Object.values(state.tierLevels).some((v) => v >= 5),
     bonus: { type: "multiply", value: 1.2, target: "all" },
     icon: "🔥",
   },
@@ -166,12 +168,12 @@ const COMBO_DEFS = [
   },
 ];
 
-export function getActiveCombos(nodes, coreSides) {
-  return COMBO_DEFS.filter((combo) => combo.check(nodes, coreSides));
+export function getActiveCombos(nodes, coreSides, state) {
+  return COMBO_DEFS.filter((combo) => combo.check(nodes, coreSides, state));
 }
 
-export function getComboMultiplier(nodes, coreSides) {
-  const active = getActiveCombos(nodes, coreSides);
+export function getComboMultiplier(nodes, coreSides, state) {
+  const active = getActiveCombos(nodes, coreSides, state);
   let multiplier = 1;
   for (const combo of active) {
     if (combo.bonus.type === "multiply") {
