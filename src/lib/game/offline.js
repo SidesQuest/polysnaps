@@ -2,6 +2,8 @@ import { SHAPE_DEFS } from "./shapes.js";
 import { getSkillEffect } from "./skills.js";
 
 const LAST_ONLINE_KEY = "polysnaps_last_online";
+const BASE_OFFLINE_CAP = 8 * 3600;
+const BASE_OFFLINE_RATE = 0.3;
 
 export function recordOnlineTime() {
   localStorage.setItem(LAST_ONLINE_KEY, Date.now().toString());
@@ -27,15 +29,28 @@ function getNodeDepth(nodes, nodeId) {
 
 export function calculateOfflineEarnings(gameState, offlineSeconds) {
   const skills = gameState.skills || {};
-  const offlineMultiplier = 0.5 + getSkillEffect(skills, "offline_mult");
+
+  const capExtension = getSkillEffect(skills, "offline_cap");
+  const maxSeconds = BASE_OFFLINE_CAP * (1 + capExtension);
+  const cappedSeconds = Math.min(offlineSeconds, maxSeconds);
+
+  const offlineMultiplier =
+    BASE_OFFLINE_RATE + getSkillEffect(skills, "offline_mult");
   const offlineGen = getSkillEffect(skills, "offline_gen");
 
-  const result = { energy: 0, flux: 0, prisms: 0 };
+  const result = {
+    energy: 0,
+    flux: 0,
+    prisms: 0,
+    cappedAt: maxSeconds,
+    adDoubleAvailable: !gameState.removeAds,
+  };
 
   for (const node of gameState.nodes) {
     if (node.id === "core") continue;
     const def = SHAPE_DEFS[node.shape];
     if (!def) continue;
+    if (def.role === "storage") continue;
 
     const depth = getNodeDepth(gameState.nodes, node.id);
     const tierLvl = (gameState.tierLevels && gameState.tierLevels[depth]) || 1;
@@ -53,20 +68,26 @@ export function calculateOfflineEarnings(gameState, offlineSeconds) {
     }
   }
 
-  result.energy = Math.floor(
-    result.energy * offlineSeconds * offlineMultiplier,
-  );
-  result.flux = Math.floor(result.flux * offlineSeconds * offlineMultiplier);
-  result.prisms = Math.floor(
-    result.prisms * offlineSeconds * offlineMultiplier,
-  );
+  result.energy = Math.floor(result.energy * cappedSeconds * offlineMultiplier);
+  result.flux = Math.floor(result.flux * cappedSeconds * offlineMultiplier);
+  result.prisms = Math.floor(result.prisms * cappedSeconds * offlineMultiplier);
 
   if (offlineGen > 0 && gameState.generatorCounts) {
-    const genGrowth = offlineSeconds * 0.01 * offlineGen;
+    const genGrowth = cappedSeconds * 0.01 * offlineGen;
     for (const key of Object.keys(gameState.generatorCounts)) {
       gameState.generatorCounts[key] += genGrowth;
     }
   }
 
   return result;
+}
+
+export function doubleOfflineEarnings(earnings) {
+  return {
+    ...earnings,
+    energy: earnings.energy * 2,
+    flux: earnings.flux * 2,
+    prisms: earnings.prisms * 2,
+    adDoubleAvailable: false,
+  };
 }

@@ -1,9 +1,13 @@
 <script>
-	import { gameState, resetForPrestige, canPrestige, getPrestigeThreshold } from '$lib/game/state.svelte.js';
+	import { gameState, resetForPrestige, canPrestige, getPrestigeThreshold, getPrestigeReward } from '$lib/game/state.svelte.js';
 	import { formatNumber } from '$lib/utils/format.js';
+	import CyberPanel from './CyberPanel.svelte';
+	import CyberButton from './CyberButton.svelte';
+	import CyberBar from './CyberBar.svelte';
 
 	let threshold = $derived(getPrestigeThreshold());
 	let ready = $derived(canPrestige());
+	let reward = $derived(getPrestigeReward());
 	let nextSides = $derived(gameState.coreShape.sides + 1);
 	let shapeNames = ['triangle', 'square', 'pentagon', 'hexagon', 'heptagon', 'octagon'];
 	let nextName = $derived(shapeNames[nextSides - 3] || `${nextSides}-gon`);
@@ -19,98 +23,70 @@
 </script>
 
 {#if ready}
-	<button class="prestige-btn game-panel" onclick={handlePrestige}>
-		<span class="prestige-title">★ PRESTIGE</span>
-		<span class="prestige-desc">
-			Evolve to {nextName} ({nextSides} sides)
-		</span>
-		<span class="prestige-warning">resets energy & shapes</span>
-	</button>
+	<CyberButton variant="red" onclick={handlePrestige}>
+		{#snippet children()}
+			<div class="prestige-content">
+				<span class="prestige-title">★ PRESTIGE</span>
+				<span class="prestige-desc">Evolve to {nextName} ({nextSides} sides)</span>
+				<span class="prestige-reward">+{reward} Cores</span>
+				<span class="prestige-warn">resets energy & shapes</span>
+			</div>
+		{/snippet}
+	</CyberButton>
 {:else}
-	<div class="prestige-locked game-panel">
-		<span class="prestige-req">
-			PRESTIGE at {formatNumber(threshold)}
-		</span>
-		<div class="prestige-bar-bg">
-			<div class="prestige-bar-fill" style="width: {progress}%"></div>
+	<CyberPanel accent="gold">
+		<div class="prestige-locked">
+			<span class="prestige-req">PRESTIGE at {formatNumber(threshold)}</span>
+			<CyberBar value={progress} max={100} color="gold" showPct />
 		</div>
-		<span class="prestige-pct">{progress.toFixed(1)}%</span>
-	</div>
+	</CyberPanel>
 {/if}
 
 <style>
-	.prestige-btn {
-		width: 100%;
-		padding: 12px;
-		cursor: pointer;
+	.prestige-content {
 		display: flex;
 		flex-direction: column;
-		gap: 5px;
+		gap: 3px;
 		text-align: center;
-		font-family: var(--font-pixel);
-		border-color: var(--color-gold);
-		background: rgba(255, 221, 85, 0.03);
-	}
-
-	.prestige-btn:hover {
-		background: rgba(255, 221, 85, 0.08);
-	}
-
-	.prestige-btn:active {
-		transform: translate(1px, 1px);
+		width: 100%;
 	}
 
 	.prestige-title {
 		font-size: 11px;
 		color: var(--color-gold);
 		letter-spacing: 3px;
+		text-shadow: 0 0 10px rgba(255,221,85,0.4);
 	}
 
 	.prestige-desc {
-		font-size: 9px;
-		color: var(--color-text);
+		font-size: 8px;
+		color: #fff;
+		opacity: 0.8;
 	}
 
-	.prestige-warning {
+	.prestige-reward {
 		font-size: 8px;
+		color: var(--color-gold);
+		text-shadow: 0 0 6px rgba(255,221,85,0.3);
+	}
+
+	.prestige-warn {
+		font-size: 7px;
 		color: var(--color-red);
 		opacity: 0.6;
 	}
 
 	.prestige-locked {
-		width: 100%;
 		padding: 10px 12px;
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 8px;
 	}
 
 	.prestige-req {
-		font-size: 9px;
+		font-family: var(--font-pixel);
+		font-size: 8px;
 		color: var(--color-text-dim);
 		text-align: center;
-	}
-
-	.prestige-bar-bg {
-		width: 100%;
-		height: 10px;
-		background: var(--color-bg);
-		border: 1px solid var(--color-border);
-		border-radius: 2px;
-		overflow: hidden;
-	}
-
-	.prestige-bar-fill {
-		height: 100%;
-		background: linear-gradient(90deg, var(--color-accent), var(--color-gold));
-		border-radius: 1px;
-		transition: width 0.3s;
-	}
-
-	.prestige-pct {
-		font-size: 8px;
-		color: var(--color-gold);
-		text-align: center;
-		opacity: 0.6;
 	}
 </style>

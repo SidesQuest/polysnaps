@@ -1,296 +1,295 @@
-# 🔷 POLYSNAPS — Game Design Document
-# *Snap. Flow. Grow.*
+# Polysnaps Game Design Document
 
-> **Status:** Early concept — core mechanics defined, details evolving
-> **Last updated:** March 6, 2026
-> **Authors:** Luca & Steen
+> Abstract geometry idle game. Snap shapes, build networks, prestige to evolve.
 
 ---
+
+## 1. Core Loop & Feel
+
+- **Theme:** Abstract geometry. No lore, no characters, no narrative. Pure shapes, flows, and growth.
+- **Core mechanic:** Idle production. Shapes generate resources passively. Clicking exists as an optional active-play bonus (via skill investment), but a player who never clicks should progress well.
+- **Session length:** Designed for short 2-5 minute check-ins (place shapes, collect offline rewards, prestige) AND longer active sessions while the app is open.
+- **Active vs offline:** Active play is meaningfully better (combos, strategic placement, skill-boosted clicking), but offline still generates resources at a reduced rate.
+
+---
+
+## 2. Resources & Economy
+
+### Resource Types
+
+| Resource | Icon | Color   | Unlocked at | Role                                                         |
+| -------- | ---- | ------- | ----------- | ------------------------------------------------------------ |
+| Energy   | ⚡   | #44aaff | Start       | Primary currency, used for shape placement and tier upgrades |
+| Flux     | 🌀   | #ff44aa | Prestige 1  | Secondary currency, required for higher-tier shapes          |
+| Prisms   | 💎   | #aa44ff | Prestige 2  | Tertiary currency, required for top-tier shapes              |
+
+### Cross-Boosting (Stockpile-Based)
+
+Resources boost each other's production rate based on how much you have stockpiled, using a logarithmic formula:
 
 ```
-  ██████╗  ██████╗ ██╗  ██╗   ██╗███████╗███╗   ██╗ █████╗ ██████╗
-  ██╔══██╗██╔═══██╗██║  ╚██╗ ██╔╝██╔════╝████╗  ██║██╔══██╗██╔══██╗
-  ██████╔╝██║   ██║██║   ╚████╔╝ ███████╗██╔██╗ ██║███████║██████╔╝
-  ██╔═══╝ ██║   ██║██║    ╚██╔╝  ╚════██║██║╚██╗██║██╔══██║██╔═══╝
-  ██║     ╚██████╔╝███████╗██║   ███████║██║ ╚████║██║  ██║██║
-  ╚═╝      ╚═════╝ ╚══════╝╚═╝   ╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝
-
-               S N A P .  F L O W .  G R O W .
+bonus = log10(stockpile) * multiplier
 ```
 
+- Flux stockpile -> boosts Energy production
+- Prisms stockpile -> boosts Flux production
+- Energy stockpile -> boosts Prisms production
+
+This creates a circular dependency where all three resources are equally important.
+
+### Multi-Resource Costs
+
+- **Triangles:** Energy only
+- **Squares:** Energy + Flux (immediately at unlock, not phased in)
+- **Pentagons:** Energy + Flux + Prisms
+- **Hexagons:** Energy + Flux + Prisms (higher amounts)
+
+### No Resource Conversion
+
+Resources cannot be converted into each other. Some things cost multiple resource types simultaneously.
+
+### Resource Sinks
+
+All resources should feel equally important and scarce. No single resource should accumulate without purpose.
+
+### Consumables
+
+Possible future addition (not priority): temporary boost items like 2x production for 5 minutes.
+
 ---
 
-## 1. Game Identity
+## 3. Shapes & Placement
 
-| | |
-|---|---|
-| **Genre** | Incremental / Idle / Factory-builder hybrid |
-| **Style** | 2D retro pixel art |
-| **Platforms** | Web, Steam (PC), Android, iOS |
-| **Name** | **Polysnaps** |
-| **Tagline** | *Snap. Flow. Grow.* |
-| **Inspirations** | Shapez, Cookie Clicker, Antimatter Dimensions, Realm Grinder |
+### Shape Types
+
+| Shape    | Sides | Role       | Special Mechanic                                                                    |
+| -------- | ----- | ---------- | ----------------------------------------------------------------------------------- |
+| Triangle | 3     | Generator  | Pure production, single-resource output                                             |
+| Square   | 4     | Multiplier | Boosts adjacent shapes' output by 1.5x                                              |
+| Pentagon | 5     | Storage    | Accumulates resource, player taps to release burst. Skill upgrade adds auto-release |
+| Hexagon  | 6     | Synergy    | Boosts production of ALL adjacent resource types                                    |
+
+### Placement Rules
+
+- Placement is **permanent until prestige**. No moving or removing shapes.
+- Future skill: allow removal of X shapes per run.
+- Placement **location matters strategically** (buff zones, resource edges, combo patterns).
+- Each shape type has exponential cost scaling: `baseCost * costMultiplier ^ totalPlaced`. This naturally limits network growth without needing a hard cap.
+
+### Network Size
+
+No hard cap. Exponential costs self-balance growth. If balancing feels off, tune `costMultiplier` values.
 
 ---
 
-## 2. Core Concept
+## 4. Prestige & Meta-Progression
 
-You build an ever-expanding network of geometric shapes. Resources flow inward from the edges toward a **center shape** — your core. The more shapes you place, the more they generate. The more you prestige, the more sides your core has, the more branches you can build, the more resources flow in.
+### Prestige System
 
-It's an idle game meets geometric factory builder.
+- **Single prestige layer** (no prestige-within-prestige). May add second layer in distant future if needed.
+- **Trigger:** Total energy earned exceeds threshold.
+- **Effect:** Core shape evolves (gains +1 side: triangle -> square -> pentagon -> ...), unlocking new resource types and shape types.
+- **Currency:** Prestige awards **Cores** (renamed from generic "prestige currency").
+- **Carryover:** Only Cores and skill unlocks carry over. Everything else resets.
 
----
+### Prestige Reward Formula
 
-## 3. Core Mechanics
-
-### 3.1 The Core Shape
-
-- The game starts with a **triangle** in the center — your core
-- The core **collects all resources** that flow inward from connected shapes
-- Each **side** of the core is a connection point for a resource branch
-- Triangle = 3 sides = 3 branches of production
-
-### 3.2 Placing Shapes
-
-- You place shapes by **snapping them to edges** of existing shapes
-- Shapes connect edge-to-edge, free-form (no grid — build in any direction)
-- The map is **infinite** — no boundaries, expand however you want
-- Every placed shape generates resources that flow **inward toward the core**
-
-### 3.3 Resource Flow
+Diminishing returns:
 
 ```
-Layer 3        Layer 2        Layer 1        CORE
-(outermost)    (middle)       (inner)        (center)
-
-   △ ──────►    △ ──────►      △ ──────►      ▲
- generates    generates      generates     collects
- for L2       for L1         for core      everything
+reward = floor(log10(totalEnergyEarned / threshold) * multiplier)
 ```
 
-- Resources always flow **inward** — from outer shapes toward the center
-- Each layer of shapes generates resources for the layer closer to the core
-- The outermost shapes generate for the shapes they're attached to
-- Those shapes generate for the shapes THEY'RE attached to
-- All the way down to the core
-- This creates a **tree structure** of production chains
+More resources = more Cores, but with diminishing returns at high values.
 
-### 3.4 Shape Types
+### Unspent Cores Passive
 
-You start with only **triangles** (simple generators). As you progress, new shape types unlock:
-
-| Shape | Sides | Role | Unlocked |
-|-------|-------|------|----------|
-| **Triangle** | 3 | Basic generator | Start |
-| **Square** | 4 | TBD (more connections?) | Prestige / upgrade |
-| **Pentagon** | 5 | TBD | Later prestige |
-| **Hexagon** | 6 | TBD | Later prestige |
-| ... | ... | ... | ... |
-
-> **Design note:** More sides = more edges to connect to = more branching potential. A square placed in the outer ring can connect to 3 outgoing shapes (vs triangle's 2), because 1 edge connects inward and the rest connect outward.
-
-Different shape types could serve different roles:
-- **Generators** — produce base resources
-- **Multipliers** — multiply throughput of connected shapes
-- **Storage** — buffer resources (for burst events?)
-- **Converters** — turn one resource type into another
-- **Special** — unique effects (TBD)
-
-> Shape type details to be designed as we prototype.
-
----
-
-## 4. Prestige System
-
-### 4.1 Core Prestige
-
-When you prestige:
-- Your network resets
-- Your **core shape gains a side** (triangle → square → pentagon → hexagon → ...)
-- More sides = more connection points = more production branches = exponentially more resources
+Unspent Cores provide a small global production multiplier:
 
 ```
-Prestige 0:  △  (3 sides, 3 branches)
-Prestige 1:  ■  (4 sides, 4 branches)
-Prestige 2:  ⬠  (5 sides, 5 branches)
-Prestige 3:  ⬡  (6 sides, 6 branches)
-...
+passive = 1 + unspentCores * 0.01
 ```
 
-### 4.2 Prestige Rewards
+This gives a reason to hoard some Cores rather than spending everything.
 
-Each prestige unlocks:
-- More sides on the core (more branches)
-- New **materials**
-- New **upgrades** that require those materials
-- New **shape types** to place
-- Deeper progression
+### Prestige Threshold
 
-### 4.3 Prestige Scaling
-
-> TBD: What's the prestige currency? How is it calculated? Does it scale based on total resources earned, shapes placed, or something else?
+Should NOT get harder each time. The threshold scales, but players get exponentially stronger, making runs progressively faster.
 
 ---
 
-## 5. The Map
+## 5. Skill Tree
 
-### 5.1 Fog of War
+### Structure
 
-- The map starts mostly hidden in **fog**
-- Fog clears around placed shapes (you can see nearby)
-- Upgrades expand fog reveal radius
-- Certain shapes or abilities reveal more fog
-- Encourages exploration — what's out there?
+- Currency: **Cores** (from prestige)
+- ~15 unique "big" skills (one-time purchase, impactful effects)
+- ~8 repeatable skills (buy up to 10-50x each, serve as Core sink)
+- QoL / automation skills: auto-place, bulk operations, offline extension
+- Clicker skills remain as an optional branch for active-play enthusiasts
 
-### 5.2 Ground Features
+### Respec
 
-The map isn't blank — the ground has special features hidden in the fog:
+- First respec is **free**
+- Subsequent respecs cost increasing premium currency
 
-**Buff Zones:**
-- Areas on the map that buff shapes placed within them
-- Examples: "shapes in this zone produce 2x", "resource flow through this zone is faster"
-- Could also buff the path/flow of resources passing through
+### Branching
 
-**Puzzle Slots:**
-- Specific spots on the ground shaped like a particular shape
-- If you place the **correct shape** in the slot → earn **skill points**
-- Encourages exploration and strategic placement
-- Some slots might be rare/hidden deep in the fog
-
-### 5.3 Map Exploration Loop
-
-```
-Place shapes → fog clears → discover ground features → 
-place shapes strategically on buff zones → 
-find puzzle slots → earn skill points → 
-unlock skills that reveal more fog → repeat
-```
+- No exclusive branches. Player can eventually buy **everything** in the tree.
+- Radial layout starting from center, branching outward.
+- Repeatable nodes visually distinct from one-time nodes.
 
 ---
 
-## 6. Shape Combos & Patterns
+## 6. Map & Exploration
 
-When multiple shapes are arranged in specific patterns, bonus effects trigger:
+### Map Properties
 
-- Several triangles forming a **star** shape → special buff
-- Shapes forming a **larger square** or **sun** pattern → special buff
-- Cool **animations** play when a combo is completed
-- Combos could grant one-time bonuses, permanent buffs, or unlock content
+- **Same map every run** (not procedurally generated per run).
+- **Bounded area** tied to natural network growth limits (exponential costs).
+- No biomes or regions with different rules.
 
-> **Design note:** This adds a puzzle/discovery layer — players experiment with layouts to find combos. Could have a "combo codex" that shows discovered vs undiscovered patterns.
+### Fog of War
 
----
+- Map starts fogged. Placing shapes reveals area around them.
+- Shapes reveal circular area based on `BASE_REVEAL_RADIUS`.
+- Core has larger reveal radius.
 
-## 7. Skill Tree
+### Discoverable Content
 
-> TBD — Luca will detail this later.
+- Boost placements for specific shapes (rare tiles in fog).
+- Puzzle slots that reward Cores/skill points when solved.
+- No NPCs, lore fragments, or narrative elements (abstract theme).
 
-Skills are unlocked with **skill points** earned from:
-- Filling puzzle slots on the map
-- Prestige rewards
-- Event rewards
-- Other achievements
+### Challenge Maps
 
----
-
-## 8. Permanent Shape Buffs
-
-Shapes can receive **permanent upgrades** that are both cosmetic and functional:
-
-- **Golden edge trim** — shape has a golden outline + stat boost
-- **Event rewards** — win limited-time events → get unique shape buffs
-- Makes shapes look cool AND perform better
-- Motivates players to participate in events and chase rewards
-- Possible rarity system? (common, rare, epic, legendary buffs)
-
-> These persist through prestige — they're truly permanent.
+- Alternative fixed layouts with different buff zone / puzzle slot placement.
+- Separate from the main map.
 
 ---
 
-## 9. Materials & Upgrades
+## 7. Buff Zones & Map Features
 
-### 9.1 Materials
-
-- Different **material types** are unlocked as you prestige
-- Materials are generated by specific shapes or earned through gameplay
-- More prestige = more material types
-
-### 9.2 Upgrades
-
-- Upgrades cost different combinations of materials
-- More prestige = more upgrades become available
-- Upgrades can affect: production speed, resource flow, fog reveal, shape capacity, new shape types, etc.
-
-> **Design note:** This creates a natural progression curve — each prestige tier opens up a new "tech tree" of upgrades that require the newly unlocked materials.
+- **Static:** Always in the same positions, never move or rotate.
+- **Player cannot create or move** buff zones.
+- **Three types:** Power (2x), Flow (1.5x), Growth (1.75x).
+- **Possible negative zones:** Areas that don't generate resources but provide a boost multiplier (future consideration).
+- **Obstacles/hazards:** Possible future addition, not priority.
 
 ---
 
-## 10. Events System
+## 8. Combos & Strategy
 
-Live, limited-time events for all players:
+### Discovery
 
-- Seasonal events (holidays, special occasions)
-- Challenge events (reach X production in Y time)
-- Community events (all players contribute to a shared goal)
-- Rewards: permanent shape buffs, cosmetics, exclusive materials, skill points
+- Combos are **hidden until triggered**. Player goes in mostly blind.
+- UI shows: "Combos: X/? discovered" -- count only, no names or details until discovered.
+- Discovery triggers an animation/notification.
+- Secret combos exist as achievements.
 
-> Event infrastructure: Supabase realtime + edge functions with cron scheduling.
+### Per-Run
 
----
+- Combos must be **rebuilt each run** (not permanent unlocks).
+- This makes each run's shape placement strategic.
 
-## 11. Offline / Idle Progression
+### Depth
 
-- When the player closes the game, production continues
-- On return, offline earnings are calculated and awarded
-- Possible: offline multiplier upgrades ("earn 50% of production while offline" → upgradeable to 100%+)
-- Cap on offline time? Or unlimited? (TBD)
+- Optimal placement matters significantly. This is not a "place anywhere it's fine" game.
 
 ---
 
-## 12. Visual Style
+## 9. Offline & Idle
 
-- **2D retro pixel art** — clean, readable, satisfying
-- Shapes should be simple but visually distinct
-- Resource flow should be **visible** — particles or lines flowing along edges toward the center
-- Combos trigger **cool animations**
-- Permanent buffs add **visual flair** (golden trim, glows, particle effects)
-- Fog should feel mysterious — incentivize exploration
-- UI should be clean and not overwhelming (tabs for different systems)
+### Offline Earnings
 
----
+- **Base cap:** 8 hours of offline accumulation.
+- **Skill extension:** Up to 24 hours with skill investment.
+- **Rate:** Reduced compared to online (exact % TBD, starting at ~30%).
+- **Ad boost:** Watch ad to double offline rewards.
+- **No offline events** (no "meteor hit your network while away").
 
-## 13. Open Design Questions
+### Active vs Idle
 
-- [ ] Game name
-- [ ] What are the specific resource types? (gold, energy, mana? or themed?)
-- [ ] Skill tree structure and skills
-- [ ] Full list of shape types and their roles
-- [ ] Prestige currency and scaling formula
-- [ ] How many prestige layers? (or infinite?)
-- [ ] Monetization model (free + ads? paid? cosmetic MTX?)
-- [ ] Multiplayer/social features? (guilds, leaderboards, trading?)
-- [ ] What do shape combos specifically do?
-- [ ] Material types and how they're generated
-- [ ] Offline earning cap or no cap?
-- [ ] Tutorial / onboarding flow
-- [ ] Sound design direction (chiptune? ambient? both?)
-- [ ] Lore / story / world theme?
+- Active play should always be significantly better than idle.
+- Idle production is the baseline; active play provides strategic placement, combo building, pentagon burst timing, skill optimization.
 
 ---
 
-## 14. What Makes This Game Unique
+## 10. Events & Live Service
 
-Most idle games are just "click button, number go up." This game has:
+### Seasonal Content
 
-1. **Spatial strategy** — WHERE you place shapes matters (buff zones, combos, fog)
-2. **Geometric prestige** — gaining sides is a brilliant visual metaphor for growth
-3. **Factory-builder depth** — optimizing your shape network like Shapez
-4. **Exploration** — fog of war is unusual for idle games, adds curiosity
-5. **Puzzle layer** — finding and filling puzzle slots, discovering combos
-6. **Visual satisfaction** — watching resources flow through your geometric network
+- Approximately monthly events, each lasting one week.
+- Exclusive rewards based on performance relative to others.
 
-This isn't just another clicker. It's an **idle factory-explorer with geometric puzzle elements.**
+### Leaderboards
+
+- Event leaderboards with tier grouping (players grouped by level/spending to prevent whale dominance).
+- Possible friends leaderboard.
+
+### Backend
+
+- Requires Supabase or similar backend for events, leaderboards, user accounts.
+- Design data model early, implement when ready.
 
 ---
 
-*More ideas to be added as Luca and Steen flesh out the concept.*
+## 11. Monetization
+
+### Model
+
+- **Free to play** with ads and IAP.
+
+### IAP
+
+- Sell boosts for game progression and events.
+- Remove-ads IAP.
+- Premium currency for skill respec (after first free respec).
+
+### Ad Integration
+
+- Ad-based boosts: watch ad for 2x production for 30 minutes.
+- Watch ad to double offline earnings.
+
+---
+
+## 12. Achievements & Challenges
+
+### Achievements
+
+- ~30 achievements across categories (shapes placed, prestige count, combo discovery, time played, etc.).
+- Each achievement gives a tiny permanent multiplier (e.g. +1%).
+- Achievements are separate from challenges.
+
+### Challenges
+
+- ~10 challenge modes with modifiers (e.g. "only triangles", "no skill tree", "speed run").
+- **Gated by prestige level:** First challenge unlocks at P3, harder ones at P5+.
+- Each challenge unlocks unique rewards (cosmetic palette, special buff zone, bonus starting resources).
+- Challenge maps: alternative fixed layouts.
+
+---
+
+## 13. Audio & Visuals
+
+### Audio
+
+- SFX only (full soundtrack not priority).
+- Chiptune-style sound effects for placement, upgrades, prestige, combos.
+
+### Visuals
+
+- Cyberpunk pixel art UI (CraftPix asset pack).
+- CRT filter overlay (scanlines, vignette, flicker, RGB fringing).
+- Shapes can pulse/glow but should not rotate.
+- Prestige triggers a visual flash effect.
+- Color theme selection possible in future.
+
+---
+
+## 14. Endgame & Longevity
+
+- **No ending.** Endless scaling.
+- Target: many hours of content before player "sees everything."
+- No new game+.
+- Replayability through challenges, events, and skill tree experimentation.

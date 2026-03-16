@@ -4,11 +4,12 @@ export const SHAPE_DEFS = {
     sides: 3,
     baseCost: 10,
     costMultiplier: 1.12,
-    baseProduction: 1,
+    baseProduction: 2,
     role: "generator",
-    description: "Basic generator. Produces resources.",
+    description: "Generator. Produces resources passively.",
     minPrestige: 0,
     freeEdges: 2,
+    costResources: { energy: 1.0 },
   },
   square: {
     name: "Square",
@@ -18,33 +19,37 @@ export const SHAPE_DEFS = {
     baseProduction: 0.5,
     role: "multiplier",
     multiplierValue: 1.5,
-    description: "Multiplier. Boosts connected shape throughput by 1.5x.",
+    description: "Multiplier. Boosts adjacent shape output by 1.5x.",
     minPrestige: 1,
     freeEdges: 3,
+    costResources: { energy: 1.0, flux: 0.5 },
   },
   pentagon: {
     name: "Pentagon",
     sides: 5,
     baseCost: 200,
     costMultiplier: 1.18,
-    baseProduction: 0.25,
+    baseProduction: 1.0,
     role: "storage",
-    storageCapacity: 500,
-    description: "Storage. Accumulates resources for burst release.",
+    storageCapacity: 100,
+    burstMultiplier: 1.5,
+    description: "Storage. Accumulates resources, tap to release burst.",
     minPrestige: 2,
     freeEdges: 4,
+    costResources: { energy: 1.0, flux: 0.5, prisms: 0.3 },
   },
   hexagon: {
     name: "Hexagon",
     sides: 6,
     baseCost: 800,
     costMultiplier: 1.2,
-    baseProduction: 0.1,
-    role: "converter",
-    conversionRate: 0.2,
-    description: "Converter. Transforms one resource type into another.",
+    baseProduction: 0.5,
+    role: "synergy",
+    synergyBoost: 0.15,
+    description: "Synergy. Boosts production of ALL resource types.",
     minPrestige: 3,
     freeEdges: 5,
+    costResources: { energy: 1.0, flux: 0.8, prisms: 0.5 },
   },
 };
 
@@ -363,6 +368,31 @@ function pointInPolygon(px, py, verts) {
   return inside;
 }
 
+function segmentsIntersect(a1, a2, b1, b2) {
+  const d1x = a2.x - a1.x,
+    d1y = a2.y - a1.y;
+  const d2x = b2.x - b1.x,
+    d2y = b2.y - b1.y;
+  const cross = d1x * d2y - d1y * d2x;
+  if (Math.abs(cross) < 1e-10) return false;
+  const t = ((b1.x - a1.x) * d2y - (b1.y - a1.y) * d2x) / cross;
+  const u = ((b1.x - a1.x) * d1y - (b1.y - a1.y) * d1x) / cross;
+  return t > 0.01 && t < 0.99 && u > 0.01 && u < 0.99;
+}
+
+function polygonsEdgeIntersect(vertsA, vertsB) {
+  for (let i = 0; i < vertsA.length; i++) {
+    const a1 = vertsA[i],
+      a2 = vertsA[(i + 1) % vertsA.length];
+    for (let j = 0; j < vertsB.length; j++) {
+      const b1 = vertsB[j],
+        b2 = vertsB[(j + 1) % vertsB.length];
+      if (segmentsIntersect(a1, a2, b1, b2)) return true;
+    }
+  }
+  return false;
+}
+
 export function wouldOverlap(newVerts, nodes, coreSides, coreRadius, parentId) {
   const geo = buildGeometryTree(nodes, coreSides, coreRadius);
   const newCenter = getPolygonCenter(newVerts);
@@ -381,6 +411,11 @@ export function wouldOverlap(newVerts, nodes, coreSides, coreRadius, parentId) {
     for (const v of newVerts) {
       if (pointInPolygon(v.x, v.y, g.vertices)) return true;
     }
+    for (const v of g.vertices) {
+      if (pointInPolygon(v.x, v.y, newVerts)) return true;
+    }
+
+    if (polygonsEdgeIntersect(newVerts, g.vertices)) return true;
   }
   return false;
 }

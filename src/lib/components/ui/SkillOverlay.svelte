@@ -19,7 +19,9 @@
 	let dragMoved = $state(false);
 	let svgEl = $state(null);
 
-	const NODE_R = 22;
+	const NODE_R = 28;
+	const NODE_W = 52;
+	const NODE_H = 52;
 	const prestige = $derived(gameState.prestige.level);
 
 	let visibility = $derived(getVisibility(gameState.skills, prestige));
@@ -100,7 +102,7 @@
 	<div class="skill-header">
 		<div class="header-left">
 			<span class="header-title">SKILL TREE</span>
-			<span class="header-sub">{totalPoints} invested · 🔮 {gameState.prestige.currency} prestige</span>
+			<span class="header-sub">{totalPoints} invested · 🔮 {gameState.prestige.currency} Cores</span>
 		</div>
 		<div class="header-right">
 			<div class="branch-tags">
@@ -128,7 +130,7 @@
 			viewBox="-700 -700 1400 1400"
 			style="transform: translate({panX}px, {panY}px) scale({zoom});"
 		>
-			{#each [140, 280, 420, 560] as ringR}
+			{#each [140, 280, 420, 560, 700] as ringR}
 				<circle cx="0" cy="0" r={ringR} class="ring-guide" />
 			{/each}
 
@@ -169,6 +171,7 @@
 				{@const cost = getSkillCost(gameState.skills, def.id)}
 				{@const canDo = canUnlockSkill(gameState.skills, def.id, prestige) && canAffordSkill(def.id)}
 				{@const maxed = level >= def.maxLevel}
+				{@const isRepeatable = def.repeatable}
 				{@const branchDef = def.branch >= 0 ? BRANCH_DEFS.find(b => b.id === def.branch) : null}
 				{@const nodeColor = branchDef ? branchDef.color : '#44aaff'}
 				{#if p && vis}
@@ -177,6 +180,7 @@
 						transform="translate({p.x}, {p.y})"
 						class:can-unlock={canDo && !maxed}
 						class:maxed
+						class:repeatable={isRepeatable}
 						class:foggy={vis === 'foggy'}
 						onclick={() => handleUnlock(def.id)}
 						onkeydown={(e) => e.key === 'Enter' && handleUnlock(def.id)}
@@ -186,37 +190,30 @@
 						tabindex="0"
 					>
 						{#if vis === 'foggy'}
-							<circle r={NODE_R} class="node-bg foggy-bg" />
+							<rect x={-NODE_W/2} y={-NODE_H/2} width={NODE_W} height={NODE_H} rx="4" class="node-bg foggy-bg" />
 							<text y="5" class="foggy-icon">?</text>
 						{:else}
-							<circle r={NODE_R} class="node-bg"
+							<rect x={-NODE_W/2} y={-NODE_H/2} width={NODE_W} height={NODE_H} rx="4" class="node-bg"
 								class:node-unlocked={level > 0}
 								class:node-maxed={maxed}
-								style={level > 0 ? `stroke: ${nodeColor};` : ''}
+								class:node-locked={level === 0 && !canDo && !maxed}
+								style={level > 0 ? `stroke: ${nodeColor};` : canDo && !maxed ? `stroke: ${nodeColor}; stroke-width: 3;` : ''}
 							/>
 							{#if level > 0}
-								<circle r={NODE_R + 4} class="node-glow" style="stroke: {nodeColor};" />
+								<rect x={-NODE_W/2 - 3} y={-NODE_H/2 - 3} width={NODE_W + 6} height={NODE_H + 6} rx="6" class="node-glow" style="stroke: {nodeColor};" />
 							{/if}
-							{#if def.iconFrame}
-								<image
-									x={-NODE_R + 2} y={-NODE_R + 2}
-									width={(NODE_R - 2) * 2} height={(NODE_R - 2) * 2}
-									href={def.iconFrame}
-									class="node-frame"
-								/>
-							{/if}
-							{#if def.iconPath}
-								<image
-									x={-NODE_R + 6} y={-NODE_R + 6}
-									width={(NODE_R - 6) * 2} height={(NODE_R - 6) * 2}
-									href={def.iconPath}
-									class="node-icon-img"
-								/>
-							{/if}
+						{#if def.iconPath}
+							<image
+								x={-16} y={-18}
+								width="32" height="32"
+								href={def.iconPath}
+								class="node-icon-img"
+							/>
+						{/if}
 						{#if level > 0}
-							<text y={NODE_R + 12} class="node-level" fill={nodeColor}>{level}/{def.maxLevel}</text>
+							<text y={NODE_H/2 + 12} class="node-level" fill={nodeColor}>{level}/{def.maxLevel}</text>
 						{:else}
-							<text y={NODE_R + 12} class="node-cost" fill={getCostColor(def.costType)}>
+							<text y={NODE_H/2 + 12} class="node-cost" fill={getCostColor(def.costType)} class:cost-affordable={canDo}>
 								{getCostIcon(def.costType)}{cost}
 							</text>
 						{/if}
@@ -281,7 +278,12 @@
 		position: fixed;
 		inset: 0;
 		z-index: 10000;
-		background: rgba(5, 5, 15, 0.98);
+		background-color: rgba(8, 8, 20, 0.98);
+		background-image:
+			radial-gradient(circle, rgba(100, 60, 180, 0.06) 1px, transparent 1px),
+			radial-gradient(ellipse at 30% 40%, rgba(100, 40, 200, 0.08) 0%, transparent 50%),
+			radial-gradient(ellipse at 70% 60%, rgba(40, 100, 200, 0.06) 0%, transparent 50%);
+		background-size: 20px 20px, 100% 100%, 100% 100%;
 		display: flex;
 		flex-direction: column;
 		animation: overlay-in 0.15s steps(3);
@@ -292,59 +294,60 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		border-bottom: 1px solid rgba(51, 51, 90, 0.5);
+		border-bottom: 1px solid rgba(100, 60, 180, 0.3);
 		flex-shrink: 0;
-		background: rgba(22, 22, 46, 0.6);
+		background: rgba(15, 12, 30, 0.7);
 	}
 
 	.header-left {
 		display: flex;
 		flex-direction: column;
-		gap: 0.15rem;
+		gap: 4px;
 	}
 
 	.header-right {
 		display: flex;
 		align-items: center;
-		gap: 1rem;
+		gap: 1.2rem;
 	}
 
 	.branch-tags {
 		display: flex;
-		gap: 6px;
+		gap: 8px;
 		flex-wrap: wrap;
 	}
 
 	.branch-tag {
 		font-family: var(--font-pixel);
-		font-size: 0.4rem;
-		padding: 2px 6px;
+		font-size: 10px;
+		padding: 4px 10px;
 		border: 1px solid;
 		border-radius: 3px;
-		opacity: 0.7;
+		opacity: 0.8;
 	}
 
 	.header-title {
-		font-size: 0.8rem;
+		font-size: 16px;
 		color: #aa44ff;
 		letter-spacing: 5px;
 		font-family: var(--font-pixel);
+		text-shadow: 0 0 12px rgba(170, 68, 255, 0.4);
 	}
 
 	.header-sub {
-		font-size: 0.45rem;
+		font-size: 11px;
 		color: var(--color-text-dim);
 		font-family: var(--font-pixel);
 	}
 
 	.close-btn {
 		background: var(--color-surface);
-		border: 1px solid var(--color-border);
+		border: 2px solid var(--color-border);
 		border-radius: 4px;
 		color: var(--color-text-dim);
-		font-size: 1rem;
+		font-size: 16px;
 		cursor: pointer;
-		padding: 6px 10px;
+		padding: 8px 14px;
 		font-family: var(--font-pixel);
 	}
 
@@ -376,22 +379,22 @@
 
 	.ring-guide {
 		fill: none;
-		stroke: rgba(51, 51, 90, 0.12);
+		stroke: rgba(100, 60, 180, 0.1);
 		stroke-width: 1;
 		pointer-events: none;
 	}
 
 	.branch-line {
 		stroke-width: 1;
-		opacity: 0.06;
+		opacity: 0.08;
 		pointer-events: none;
 	}
 
 	.branch-label {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 10px;
 		text-anchor: middle;
-		opacity: 0.4;
+		opacity: 0.5;
 		pointer-events: none;
 	}
 
@@ -432,7 +435,7 @@
 	.node-bg {
 		fill: var(--color-bg);
 		stroke: var(--color-border);
-		stroke-width: 2.5;
+		stroke-width: 2;
 	}
 
 	.foggy-bg {
@@ -442,16 +445,33 @@
 	}
 
 	.node-bg.node-unlocked {
-		fill: rgba(170, 68, 255, 0.08);
+		fill: rgba(170, 68, 255, 0.1);
+		stroke-width: 2.5;
 	}
 
 	.node-bg.node-maxed {
 		stroke: var(--color-gold) !important;
-		fill: rgba(255, 221, 85, 0.06);
+		fill: rgba(255, 221, 85, 0.08);
+		stroke-width: 2.5;
+	}
+
+	.node-bg.node-locked {
+		fill: rgba(10, 10, 20, 0.7);
+		stroke: rgba(60, 60, 90, 0.4);
+		stroke-width: 1.5;
+	}
+
+	.skill-node-g.repeatable .node-bg {
+		stroke-dasharray: 4 3;
+	}
+
+	.skill-node-g.repeatable.maxed .node-bg {
+		stroke-dasharray: none;
 	}
 
 	.skill-node-g.can-unlock .node-bg {
-		animation: node-blink 1.5s steps(2) infinite;
+		animation: node-blink 1.5s ease-in-out infinite;
+		filter: drop-shadow(0 0 4px rgba(170, 68, 255, 0.4));
 	}
 
 	.node-glow {
@@ -461,7 +481,6 @@
 		pointer-events: none;
 	}
 
-	.node-frame,
 	.node-icon-img {
 		image-rendering: pixelated;
 		pointer-events: none;
@@ -478,16 +497,22 @@
 
 	.node-level {
 		font-family: var(--font-pixel);
-		font-size: 7px;
+		font-size: 8px;
 		text-anchor: middle;
 		pointer-events: none;
 	}
 
 	.node-cost {
 		font-family: var(--font-pixel);
-		font-size: 7px;
+		font-size: 8px;
 		text-anchor: middle;
 		pointer-events: none;
+		opacity: 0.5;
+	}
+
+	.node-cost.cost-affordable {
+		opacity: 1;
+		font-size: 9px;
 	}
 
 	.skill-tooltip {
@@ -588,7 +613,7 @@
 	}
 
 	@keyframes node-blink {
-		0%, 100% { stroke-opacity: 0.4; }
-		50% { stroke-opacity: 1; }
+		0%, 100% { stroke-opacity: 0.6; filter: drop-shadow(0 0 3px rgba(170, 68, 255, 0.3)); }
+		50% { stroke-opacity: 1; filter: drop-shadow(0 0 8px rgba(170, 68, 255, 0.6)); }
 	}
 </style>

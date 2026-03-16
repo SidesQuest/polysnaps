@@ -1,9 +1,9 @@
 <script>
 	import { onMount } from 'svelte';
-	import { gameState, placeShape, canAffordShape, addResource, getNodeProduction, getNodeDepth, getBuffZones, getClickValue, performClick, getTierLevel, getNodeChildren, getEdgeResource, getNodeResource, getGeneratorCount, getAvailableShapes, getShapePlacementCost, getNextShapeCost, getFogState, getPuzzleSlots } from '$lib/game/state.svelte.js';
+	import { gameState, placeShape, canAffordShape, addResource, getNodeProduction, getNodeDepth, getBuffZones, getClickValue, performClick, getTierLevel, getNodeChildren, getEdgeResource, getNodeResource, getGeneratorCount, getAvailableShapes, getShapePlacementCost, getShapeResourceCosts, getFogState, getPuzzleSlots, getPentagonStorage, getPentagonCapacity, releasePentagonBurst } from '$lib/game/state.svelte.js';
 	import { RESOURCE_DEFS } from '$lib/game/state.svelte.js';
 	import { buildGeometryTree, getOpenSlots, verticesToString, getPolygonPointsString, getCoreVertices, SHAPE_DEFS } from '$lib/game/shapes.js';
-	import { isPointRevealed, FOG_CELL_SIZE } from '$lib/game/fog.js';
+	import { isPointRevealed, FOG_CELL_SIZE, getRevealedCells } from '$lib/game/fog.js';
 	import { getZoneBonus } from '$lib/game/buffzones.js';
 	import { playClick } from '$lib/game/audio.js';
 	import { formatNumber } from '$lib/utils/format.js';
@@ -33,7 +33,7 @@
 	let hoveredNode = $state(null);
 	let selectedShape = $state('triangle');
 	let availableShapes = $derived(getAvailableShapes());
-	let selectedCost = $derived(getShapePlacementCost(selectedShape));
+	let selectedCosts = $derived(getShapeResourceCosts(selectedShape));
 	let fogCells = $derived(getFogState());
 	let puzzleSlots = $derived(getPuzzleSlots());
 	let panX = $state(0);
@@ -51,6 +51,18 @@
 	);
 
 	let buffZones = $derived(getBuffZones());
+
+	let fogRevealCoords = $derived.by(() => {
+		const coords = [];
+		for (const key of fogCells) {
+			const parts = key.split(',');
+			coords.push({
+				x: Number(parts[0]) * FOG_CELL_SIZE,
+				y: Number(parts[1]) * FOG_CELL_SIZE,
+			});
+		}
+		return coords;
+	});
 
 	let geoMap = $derived.by(() => {
 		const m = new Map();
@@ -229,12 +241,27 @@
 	function handleSlotClick(e, slot) {
 		e.preventDefault();
 		e.stopPropagation();
-		if (gameState.resources.energy >= selectedCost) {
+		if (canAffordShape(selectedShape)) {
 			const ok = placeShape(slot.parentId, slot.edgeIndex, selectedShape);
 			if (ok) {
 				const depth = slot.layer || 1;
 				spawnPlaceParticles(slot.center.x, slot.center.y, getLayerColor(depth));
 			}
+		}
+	}
+
+	function handlePentagonClick(e, geo) {
+		e.preventDefault();
+		e.stopPropagation();
+		const stored = getPentagonStorage(geo.node.id);
+		if (stored <= 0) return;
+		const released = releasePentagonBurst(geo.node.id);
+		if (released > 0) {
+			const res = getNodeResource(geo.node.id);
+			const resDef = RESOURCE_DEFS[res];
+			spawnFloatingNum(geo.center.x, geo.center.y - 15, `${resDef.icon}+${formatNumber(released)}!`, resDef.color);
+			spawnPlaceParticles(geo.center.x, geo.center.y, resDef.color);
+			triggerShake();
 		}
 	}
 
@@ -275,25 +302,33 @@
 		const resKey = getNodeResource(geo.node.id);
 		const resDef = RESOURCE_DEFS[resKey];
 		const genCount = getGeneratorCount(geo.node.id);
+		const shapeDef = SHAPE_DEFS[geo.node.shape];
 
 		let subtitle = '';
-		if (depth === 1) {
-			subtitle = `${resDef.icon} ${resDef.name} · ${genCount.toFixed(1)} gens`;
+		if (shapeDef?.role === 'storage' && depth === 1) {
+			const stored = getPentagonStorage(geo.node.id);
+			const capacity = getPentagonCapacity(geo.node.id);
+			subtitle = `${resDef.icon} Stored: ${formatNumber(stored)}/${formatNumber(capacity)} · TAP`;
+		} else if (shapeDef?.role === 'synergy' && depth === 1) {
+			subtitle = `${resDef.icon} Synergy +${((shapeDef.synergyBoost || 0.15) * 100).toFixed(0)}% all`;
+		} else if (depth === 1) {
+			subtitle = `${resDef.icon} ${resDef.name} · ${Math.round(genCount)} gens`;
 		} else {
-			const feedRate = (0.1 * tierLvl).toFixed(1);
-			subtitle = `Feeds T${depth - 1} +${feedRate}/s`;
+			const feedRate = Math.round(0.1 * tierLvl * 10) / 10;
+			subtitle = `Feeds T${depth - 1} +${feedRate > 1 ? Math.round(feedRate) : feedRate}/s`;
 		}
 
 		hoveredNode = {
 			x: geo.center.x,
 			y: geo.center.y - 22,
-			name: `Tier ${depth}`,
+			name: `${shapeDef?.name || 'Tier ' + depth}`,
 			level: tierLvl,
 			production: prod,
 			zoneBonus,
 			id: geo.node.id,
 			color,
 			subtitle,
+			role: shapeDef?.role,
 		};
 	}
 </script>
@@ -312,17 +347,24 @@
 	role="img"
 >
 	{#each buffZones as zone}
-		<circle
-			cx={zone.x} cy={zone.y} r={zone.radius}
-			fill="{zone.color}08"
+		{@const hexPoints = Array.from({length: 6}, (_, i) => {
+			const a = (i * Math.PI * 2) / 6 - Math.PI / 6;
+			return `${zone.x + zone.radius * Math.cos(a)},${zone.y + zone.radius * Math.sin(a)}`;
+		}).join(' ')}
+		<polygon
+			points={hexPoints}
+			fill="{zone.color}12"
 			stroke={zone.color}
-			stroke-width="0.5"
-			stroke-dasharray="4 6"
-			opacity="0.3"
+			stroke-width="1.2"
+			stroke-dasharray="6 4"
+			opacity="0.45"
 			class="buff-zone"
 		/>
-		<text x={zone.x} y={zone.y - zone.radius - 5} class="zone-label" fill={zone.color}>
-			{zone.icon} {zone.name}
+		<text x={zone.x} y={zone.y} class="zone-label-center" fill={zone.color}>
+			{zone.icon}
+		</text>
+		<text x={zone.x} y={zone.y + 10} class="zone-label-name" fill={zone.color}>
+			{zone.name}
 		</text>
 	{/each}
 
@@ -344,14 +386,6 @@
 		{/if}
 	{/each}
 
-	<defs>
-		<radialGradient id="fog-edge" cx="50%" cy="50%" r="50%">
-			<stop offset="0%" stop-color="transparent" />
-			<stop offset="70%" stop-color="transparent" />
-			<stop offset="100%" stop-color="rgba(5,5,15,0.85)" />
-		</radialGradient>
-	</defs>
-
 	{#each connectionLines as cl (cl.id)}
 		<line
 			x1={cl.x1} y1={cl.y1} x2={cl.x2} y2={cl.y2}
@@ -362,63 +396,65 @@
 	{/each}
 
 	{#each flowPaths as fp (fp.id)}
-		<circle r="3.5" fill={fp.color} opacity="0" class="flow-particle">
+		<circle r="4" fill={fp.color} opacity="0.3" class="flow-particle">
 			<animateMotion dur="{fp.dur}s" repeatCount="indefinite" path={fp.path} />
-			<animate attributeName="opacity" values="0.1;1;1;0.1" dur="{fp.dur}s" repeatCount="indefinite" />
-			<animate attributeName="r" values="2.5;3.5;2.5" dur="{fp.dur}s" repeatCount="indefinite" />
+			<animate attributeName="opacity" values="0.3;1;1;0.3" dur="{fp.dur}s" repeatCount="indefinite" />
+			<animate attributeName="r" values="3;4;3" dur="{fp.dur}s" repeatCount="indefinite" />
 		</circle>
-		<circle r="2" fill={fp.color} opacity="0" class="flow-particle">
+		<circle r="2.5" fill={fp.color} opacity="0.2" class="flow-particle">
 			<animateMotion dur="{fp.dur}s" begin="{fp.dur * 0.4}s" repeatCount="indefinite" path={fp.path} />
-			<animate attributeName="opacity" values="0.1;0.8;0.8;0.1" dur="{fp.dur}s" begin="{fp.dur * 0.4}s" repeatCount="indefinite" />
+			<animate attributeName="opacity" values="0.2;0.9;0.9;0.2" dur="{fp.dur}s" begin="{fp.dur * 0.4}s" repeatCount="indefinite" />
 		</circle>
 	{/each}
 
-	{#each openSlots as slot}
-		{@const slotResKey = slot.parentId === 'core' ? getEdgeResource(slot.edgeIndex) : null}
-		{@const slotRes = slotResKey ? RESOURCE_DEFS[slotResKey] : null}
-		<polygon
-			points={verticesToString(slot.vertices)}
-			class="empty-slot"
-			class:affordable={canAffordShape()}
-			onclick={(e) => handleSlotClick(e, slot)}
-			onkeydown={(e) => e.key === 'Enter' && handleSlotClick(e, slot)}
-			role="button"
-			tabindex="0"
-		/>
-		<text
-			x={slot.center.x}
-			y={slot.center.y + (slotRes ? -1 : 2)}
-			class="slot-plus"
-			class:affordable={canAffordShape()}
-		>+</text>
-		{#if slotRes}
+	{#if canAffordShape(selectedShape)}
+		{#each openSlots as slot}
+			{@const slotResKey = slot.parentId === 'core' ? getEdgeResource(slot.edgeIndex) : null}
+			{@const slotRes = slotResKey ? RESOURCE_DEFS[slotResKey] : null}
+			{@const shapeSides = SHAPE_DEFS[selectedShape]?.sides || 3}
+			{@const shapeSymbol = shapeSides === 3 ? '△' : shapeSides === 4 ? '□' : shapeSides === 5 ? '⬠' : '⬡'}
+			<polygon
+				points={verticesToString(slot.vertices)}
+				class="empty-slot affordable"
+				onclick={(e) => handleSlotClick(e, slot)}
+				onkeydown={(e) => e.key === 'Enter' && handleSlotClick(e, slot)}
+				role="button"
+				tabindex="0"
+			/>
 			<text
 				x={slot.center.x}
-				y={slot.center.y + 8}
-				class="slot-resource-hint"
-				fill={slotRes.color}
-			>{slotRes.icon}</text>
-		{/if}
-	{/each}
+				y={slot.center.y + (slotRes ? -2 : 2)}
+				class="slot-shape-hint"
+			>{shapeSymbol}</text>
+			{#if slotRes}
+				<text
+					x={slot.center.x}
+					y={slot.center.y + 8}
+					class="slot-resource-hint"
+					fill={slotRes.color}
+				>{slotRes.icon}</text>
+			{/if}
+		{/each}
+	{/if}
 
 	{#each geometry as geo}
 		{#if geo.isCore}
-			<g class="core" class:pulse={pulseCore}>
-				{#each clickRipples as rid (rid)}
-					<circle cx="0" cy="0" r="10" class="click-ripple" />
-				{/each}
-				<polygon
-					points={verticesToString(geo.vertices)}
-					class="core-polygon"
-					onclick={handleCoreClick}
-					onkeydown={(e) => e.key === 'Enter' && handleCoreClick(e)}
-					role="button"
-					tabindex="0"
-				/>
-				<polygon
-					points={getPolygonPointsString(gameState.coreShape.sides, CORE_RADIUS - 10)}
-					class="core-inner"
-				/>
+		<g class="core" class:pulse={pulseCore}>
+			{#each clickRipples as rid (rid)}
+				<circle cx="0" cy="0" r="10" class="click-ripple" />
+			{/each}
+			<polygon
+				points={verticesToString(geo.vertices)}
+				class="core-polygon"
+				onclick={handleCoreClick}
+				onkeydown={(e) => e.key === 'Enter' && handleCoreClick(e)}
+				role="button"
+				tabindex="0"
+			/>
+			<polygon
+				points={getPolygonPointsString(gameState.coreShape.sides, CORE_RADIUS - 10)}
+				class="core-inner"
+			/>
 			<text y="4" class="core-text">TAP</text>
 			{#each coreEdgeMids as em}
 				<line
@@ -436,16 +472,50 @@
 			{@const tierLvl = getTierLevel(depth)}
 			{@const inZone = getZoneBonus(geo.center, buffZones) > 1}
 			{@const shapeDef = SHAPE_DEFS[geo.node.shape]}
-			{@const roleIcon = shapeDef?.role === 'multiplier' ? '×' : shapeDef?.role === 'storage' ? '▣' : shapeDef?.role === 'converter' ? '⟳' : ''}
+			{@const roleIcon = shapeDef?.role === 'multiplier' ? '×' : shapeDef?.role === 'storage' ? '▣' : shapeDef?.role === 'synergy' ? '✦' : ''}
+			{@const isPentagon = shapeDef?.role === 'storage' && depth === 1}
+			{@const isHexSynergy = shapeDef?.role === 'synergy' && depth === 1}
+			{@const pentStored = isPentagon ? getPentagonStorage(geo.node.id) : 0}
+			{@const pentCap = isPentagon ? getPentagonCapacity(geo.node.id) : 1}
+			{@const pentPct = isPentagon ? Math.min(1, pentStored / pentCap) : 0}
 			<polygon
 				points={verticesToString(geo.vertices)}
 				class="placed-shape"
 				class:in-zone={inZone}
+				class:pentagon-full={isPentagon && pentPct > 0.9}
+				class:pentagon-clickable={isPentagon && pentStored > 0}
+				class:hex-synergy={isHexSynergy}
 				style="stroke: {color};"
+				onclick={isPentagon ? (e) => handlePentagonClick(e, geo) : undefined}
 				onmouseenter={() => handleShapeHover(geo)}
 				onmouseleave={() => (hoveredNode = null)}
-				role="img"
+				role={isPentagon ? 'button' : 'img'}
+				tabindex={isPentagon ? '0' : undefined}
+				onkeydown={isPentagon ? (e) => e.key === 'Enter' && handlePentagonClick(e, geo) : undefined}
 			/>
+			{#if isPentagon && pentPct > 0}
+				<rect
+					x={geo.center.x - 12}
+					y={geo.center.y + 6}
+					width={24}
+					height={3}
+					rx="1"
+					fill="rgba(0,0,0,0.5)"
+					stroke={color}
+					stroke-width="0.5"
+					class="storage-bar-bg"
+				/>
+				<rect
+					x={geo.center.x - 12}
+					y={geo.center.y + 6}
+					width={24 * pentPct}
+					height={3}
+					rx="1"
+					fill={color}
+					opacity={pentPct > 0.9 ? 1 : 0.6}
+					class="storage-bar-fill"
+				/>
+			{/if}
 			<text
 				x={geo.center.x}
 				y={geo.center.y + (roleIcon ? 0 : 3)}
@@ -455,7 +525,7 @@
 				{tierLvl}
 			</text>
 			{#if roleIcon}
-				<text x={geo.center.x} y={geo.center.y + 7} class="shape-role" style="fill: {color};">{roleIcon}</text>
+				<text x={geo.center.x} y={geo.center.y + (isPentagon ? 14 : 7)} class="shape-role" style="fill: {color};">{roleIcon}</text>
 			{/if}
 		{/if}
 	{/each}
@@ -503,14 +573,23 @@
 {#if availableShapes.length > 1}
 	<div class="shape-selector">
 		{#each availableShapes as shape}
+			{@const costs = getShapeResourceCosts(shape.key)}
+			{@const costEntries = Object.entries(costs).filter(([,v]) => v > 0)}
+			{@const affordable = canAffordShape(shape.key)}
 			<button
 				class="shape-btn"
 				class:active={selectedShape === shape.key}
+				class:affordable
 				onclick={() => (selectedShape = shape.key)}
 				title="{shape.name}: {shape.description}"
 			>
 				<span class="shape-icon">{shape.sides === 3 ? '△' : shape.sides === 4 ? '□' : shape.sides === 5 ? '⬠' : '⬡'}</span>
-				<span class="shape-cost">{formatNumber(getShapePlacementCost(shape.key))}</span>
+				<span class="shape-label">{shape.name}</span>
+				<span class="shape-cost">
+					{#each costEntries as [res, amt]}
+						<span style="color: {RESOURCE_DEFS[res]?.color || '#888'};">{RESOURCE_DEFS[res]?.icon}{formatNumber(amt)}</span>
+					{/each}
+				</span>
 			</button>
 		{/each}
 	</div>
@@ -534,11 +613,19 @@
 		pointer-events: none;
 	}
 
-	.zone-label {
+	.zone-label-center {
+		font-size: 10px;
+		text-anchor: middle;
+		pointer-events: none;
+		opacity: 0.7;
+	}
+
+	.zone-label-name {
 		font-family: var(--font-pixel);
 		font-size: 5px;
 		text-anchor: middle;
 		pointer-events: none;
+		opacity: 0.5;
 	}
 
 	.flow-particle {
@@ -625,37 +712,25 @@
 
 	.empty-slot {
 		fill: transparent;
-		stroke: var(--color-border);
+		stroke: var(--color-gold);
 		stroke-width: 1;
-		stroke-dasharray: 3 5;
-		opacity: 0.15;
-		cursor: not-allowed;
+		stroke-dasharray: 4 4;
+		opacity: 0.3;
+		cursor: pointer;
 		outline: none;
 	}
 
-	.empty-slot.affordable {
-		stroke: var(--color-gold);
-		opacity: 0.25;
-		cursor: pointer;
-	}
-
-	.empty-slot.affordable:hover {
+	.empty-slot:hover {
 		opacity: 1;
 		fill: rgba(255, 221, 85, 0.08);
 		animation: slot-blink 0.6s steps(2) infinite;
 	}
 
-	.slot-plus {
-		fill: var(--color-text-dim);
-		font-family: var(--font-pixel);
+	.slot-shape-hint {
+		fill: var(--color-gold);
 		font-size: 7px;
 		text-anchor: middle;
 		pointer-events: none;
-		opacity: 0.15;
-	}
-
-	.slot-plus.affordable {
-		fill: var(--color-gold);
 		opacity: 0.5;
 	}
 
@@ -663,7 +738,7 @@
 		font-size: 6px;
 		text-anchor: middle;
 		pointer-events: none;
-		opacity: 0.35;
+		opacity: 0.4;
 	}
 
 	.tooltip {
@@ -760,6 +835,37 @@
 		pointer-events: none;
 	}
 
+	.pentagon-clickable {
+		cursor: pointer;
+	}
+
+	.pentagon-clickable:hover {
+		filter: brightness(1.3);
+	}
+
+	.pentagon-full {
+		animation: pentagon-pulse 1s ease-in-out infinite alternate;
+	}
+
+	@keyframes pentagon-pulse {
+		0% { filter: brightness(1); }
+		100% { filter: brightness(1.4); }
+	}
+
+	.storage-bar-bg, .storage-bar-fill {
+		pointer-events: none;
+	}
+
+	.hex-synergy {
+		animation: hex-glow 2s ease-in-out infinite alternate;
+		filter: drop-shadow(0 0 3px rgba(170, 68, 255, 0.4));
+	}
+
+	@keyframes hex-glow {
+		0% { filter: drop-shadow(0 0 2px rgba(170, 68, 255, 0.3)) brightness(1); }
+		100% { filter: drop-shadow(0 0 6px rgba(170, 68, 255, 0.6)) brightness(1.15); }
+	}
+
 	.placed-shape {
 		transition: filter 0.3s;
 	}
@@ -769,8 +875,8 @@
 	}
 
 	@keyframes zone-glow {
-		0% { opacity: 0.2; }
-		100% { opacity: 0.4; }
+		0% { opacity: 0.35; }
+		100% { opacity: 0.55; }
 	}
 
 	.puzzle-slot {
@@ -818,47 +924,63 @@
 
 	.shape-selector {
 		position: absolute;
-		bottom: 8px;
+		bottom: 12px;
 		left: 50%;
 		transform: translateX(-50%);
 		display: flex;
-		gap: 4px;
-		background: rgba(11, 11, 25, 0.9);
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
-		padding: 4px 6px;
+		gap: 6px;
+		background: rgba(20, 20, 32, 0.95);
+		border: 2px solid var(--color-border);
+		border-radius: 6px;
+		padding: 8px 12px;
+		backdrop-filter: blur(6px);
 	}
 
 	.shape-btn {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 2px;
-		padding: 4px 8px;
+		gap: 4px;
+		padding: 8px 14px;
 		background: transparent;
-		border: 1px solid var(--color-border);
-		border-radius: 3px;
+		border: 2px solid var(--color-border);
+		border-radius: 4px;
 		cursor: pointer;
 		font-family: var(--font-pixel);
 		color: var(--color-text-dim);
 		outline: none;
+		opacity: 0.5;
+		transition: border-color 0.15s, opacity 0.15s;
+	}
+
+	.shape-btn.affordable {
+		opacity: 0.85;
 	}
 
 	.shape-btn.active {
 		border-color: var(--color-gold);
 		color: var(--color-gold);
 		background: rgba(255, 221, 85, 0.08);
+		opacity: 1;
 	}
 
 	.shape-btn:hover {
 		border-color: var(--color-accent);
+		opacity: 1;
 	}
 
 	.shape-icon {
-		font-size: 14px;
+		font-size: 20px;
+	}
+
+	.shape-label {
+		font-size: 8px;
+		letter-spacing: 1px;
 	}
 
 	.shape-cost {
-		font-size: 6px;
+		font-size: 8px;
+		display: flex;
+		gap: 6px;
 	}
 </style>
