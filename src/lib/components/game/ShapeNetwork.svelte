@@ -450,6 +450,19 @@
 	ontouchend={handleTouchEnd}
 	role="img"
 >
+	<defs>
+		{#each TIER_COLORS as color, i}
+			<radialGradient id="shape-fill-{i}" cx="50%" cy="50%" r="60%">
+				<stop offset="0%" stop-color="{color}" stop-opacity="0.03" />
+				<stop offset="100%" stop-color="{color}" stop-opacity="0.12" />
+			</radialGradient>
+			<radialGradient id="shape-fill-bright-{i}" cx="50%" cy="50%" r="60%">
+				<stop offset="0%" stop-color="{color}" stop-opacity="0.06" />
+				<stop offset="100%" stop-color="{color}" stop-opacity="0.18" />
+			</radialGradient>
+		{/each}
+	</defs>
+
 	{#each buffZones as zone}
 		{@const hexPoints = Array.from({length: 6}, (_, i) => {
 			const a = (i * Math.PI * 2) / 6 - Math.PI / 6;
@@ -542,9 +555,17 @@
 			{#each clickRipples as rid (rid)}
 				<circle cx="0" cy="0" r="10" class="click-ripple" />
 			{/each}
+			
+			{#if gameState.prestige.level >= 2}
+				<circle cx="0" cy="0" r={CORE_RADIUS + 15} class="core-aura" style="stroke: {gameState.prestige.level >= 3 ? '#aa44ff' : '#44aaff'};" />
+			{/if}
+			
 			<polygon
 				points={verticesToString(geo.vertices)}
 				class="core-polygon"
+				class:core-p1={gameState.prestige.level >= 1}
+				class:core-p2={gameState.prestige.level >= 2}
+				class:core-p3={gameState.prestige.level >= 3}
 				onclick={handleCoreClick}
 				onkeydown={(e) => e.key === 'Enter' && handleCoreClick(e)}
 				role="button"
@@ -553,6 +574,7 @@
 			<polygon
 				points={getPolygonPointsString(gameState.coreShape.sides, CORE_RADIUS - 10)}
 				class="core-inner"
+				class:core-inner-glow={gameState.prestige.level >= 1}
 			/>
 			<text y="4" class="core-text">TAP</text>
 			{#if coreFlash}
@@ -567,7 +589,7 @@
 				/>
 				<text x={em.x} y={em.y + 4} class="core-resource-icon" fill={em.color}>{em.icon}</text>
 			{/each}
-			</g>
+		</g>
 		{:else}
 			{@const depth = getNodeDepth(geo.node.id)}
 			{@const color = getLayerColor(depth)}
@@ -587,7 +609,7 @@
 				class:pentagon-full={isPentagon && pentPct > 0.9}
 				class:pentagon-clickable={isPentagon && pentStored > 0}
 				class:hex-synergy={isHexSynergy}
-				style="stroke: {color};"
+				style="stroke: {color}; fill: url(#shape-fill-{(depth - 1) % TIER_COLORS.length});"
 				onclick={isPentagon ? (e) => handlePentagonClick(e, geo) : undefined}
 				onmouseenter={() => handleShapeHover(geo)}
 				onmouseleave={() => (hoveredNode = null)}
@@ -768,6 +790,12 @@
 		text-anchor: middle;
 		pointer-events: none;
 		opacity: 0.8;
+		animation: core-text-pulse 2s ease-in-out infinite alternate;
+	}
+
+	@keyframes core-text-pulse {
+		0% { opacity: 0.6; }
+		100% { opacity: 1; }
 	}
 
 	.core-resource-icon {
@@ -781,14 +809,65 @@
 		pointer-events: none;
 	}
 
+	.core-aura {
+		fill: none;
+		stroke-width: 1;
+		opacity: 0.2;
+		pointer-events: none;
+		animation: core-aura-pulse 3s ease-in-out infinite;
+	}
+
+	@keyframes core-aura-pulse {
+		0%, 100% { opacity: 0.1; r: attr(r); }
+		50% { opacity: 0.3; }
+	}
+
+	.core-polygon.core-p1 {
+		filter: drop-shadow(0 0 4px rgba(68, 170, 255, 0.3));
+	}
+
+	.core-polygon.core-p2 {
+		filter: drop-shadow(0 0 8px rgba(68, 170, 255, 0.4));
+		stroke-width: 3;
+	}
+
+	.core-polygon.core-p3 {
+		filter: drop-shadow(0 0 12px rgba(170, 68, 255, 0.5));
+		stroke-width: 3;
+		stroke: #aa66ff;
+	}
+
+	.core-inner-glow {
+		opacity: 0.25;
+		animation: core-inner-pulse 2s ease-in-out infinite alternate;
+	}
+
+	@keyframes core-inner-pulse {
+		0% { opacity: 0.15; }
+		100% { opacity: 0.35; }
+	}
+
+	.core:not(.pulse) .core-polygon {
+		animation: core-idle-pulse 3s ease-in-out infinite;
+	}
+
+	@keyframes core-idle-pulse {
+		0%, 100% { filter: brightness(1); }
+		50% { filter: brightness(1.15); }
+	}
+
 	.placed-shape {
-		fill: rgba(11, 11, 25, 0.8);
 		stroke-width: 1.8;
 		cursor: default;
+		transition: filter 0.3s;
+	}
+
+	.placed-shape:hover {
+		filter: brightness(1.3);
 	}
 
 	.placed-shape.in-zone {
-		fill: rgba(20, 20, 50, 0.8);
+		filter: brightness(1.1);
 	}
 
 	.shape-level {
@@ -990,10 +1069,6 @@
 	@keyframes hex-glow {
 		0% { filter: drop-shadow(0 0 2px rgba(170, 68, 255, 0.3)) brightness(1); }
 		100% { filter: drop-shadow(0 0 6px rgba(170, 68, 255, 0.6)) brightness(1.15); }
-	}
-
-	.placed-shape {
-		transition: filter 0.3s;
 	}
 
 	.buff-zone {

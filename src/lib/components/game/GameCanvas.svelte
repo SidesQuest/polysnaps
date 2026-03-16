@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { gameState, addResource, getProductionByResource, getUnlockedResources, loadStateFrom, getPlacedCount, tickGenerators, tickAutoSystems, tickFluxConvert, tickPuzzleChecks, tickPentagonStorage, tickAchievements, tickChallengeCheck } from '$lib/game/state.svelte.js';
+	import { gameState, addResource, getProductionByResource, getUnlockedResources, loadStateFrom, getPlacedCount, tickGenerators, tickAutoSystems, tickFluxConvert, tickPuzzleChecks, tickPentagonStorage, tickAchievements, tickChallengeCheck, getPrestigeReward } from '$lib/game/state.svelte.js';
 	import { startEngine, stopEngine, onTick } from '$lib/game/engine.js';
 	import { saveGame, loadGame, hasSave } from '$lib/game/save.js';
 	import { getOfflineSeconds, calculateOfflineEarnings, doubleOfflineEarnings, recordOnlineTime } from '$lib/game/offline.js';
@@ -33,15 +33,23 @@
 	let achievementsOpen = $state(false);
 	let challengesOpen = $state(false);
 	let menuOpen = $state(false);
-	let prestigeFlash = $state(false);
+	let prestigePhase = $state(null); // null | 'flash' | 'banner'
+	let prestigeInfo = $state(null);
 	let usePixi = $state(false);
 	let prevComboLen = $state(0);
 	let allAchievements = getAllAchievements();
 	let mobileTab = $state('canvas');
 
 	function handlePrestige() {
-		prestigeFlash = true;
-		setTimeout(() => (prestigeFlash = false), 800);
+		const shapeNames = ['triangle', 'square', 'pentagon', 'hexagon', 'heptagon', 'octagon'];
+		const nextSides = gameState.coreShape.sides + 1;
+		const nextName = shapeNames[nextSides - 3] || `${nextSides}-gon`;
+		const reward = getPrestigeReward ? getPrestigeReward() : 0;
+		
+		prestigeInfo = { nextName, nextSides, reward, level: gameState.prestige.level + 1 };
+		prestigePhase = 'flash';
+		setTimeout(() => { prestigePhase = 'banner'; }, 1200);
+		setTimeout(() => { prestigePhase = null; prestigeInfo = null; }, 4500);
 	}
 
 	onMount(() => {
@@ -122,8 +130,19 @@
 </script>
 
 <div class="game-canvas">
-	{#if prestigeFlash}
+	{#if prestigePhase === 'flash'}
 		<div class="prestige-flash"></div>
+	{/if}
+	{#if prestigePhase === 'banner' && prestigeInfo}
+		<div class="prestige-banner">
+			<div class="prestige-banner-inner">
+				<span class="pb-star">★</span>
+				<span class="pb-title">PRESTIGE</span>
+				<span class="pb-level">Level {prestigeInfo.level}</span>
+				<span class="pb-shape">Core evolved to {prestigeInfo.nextName}</span>
+				<span class="pb-reward">+{prestigeInfo.reward} Cores earned</span>
+			</div>
+		</div>
 	{/if}
 
 	{#if skillTreeOpen}
@@ -482,16 +501,97 @@
 	.prestige-flash {
 		position: absolute;
 		inset: 0;
-		background: radial-gradient(circle, rgba(255,221,85,0.6) 0%, rgba(255,221,85,0) 70%);
 		z-index: 50;
 		pointer-events: none;
-		animation: flash-out 0.8s ease-out forwards;
+		background: radial-gradient(circle, rgba(255,221,85,0.8) 0%, rgba(255,255,255,0.9) 40%, rgba(255,221,85,0) 80%);
+		animation: prestige-flash-anim 1.2s ease-out forwards;
 	}
 
-	@keyframes flash-out {
-		0% { opacity: 1; transform: scale(0.8); }
-		30% { opacity: 1; transform: scale(1.2); }
-		100% { opacity: 0; transform: scale(2); }
+	@keyframes prestige-flash-anim {
+		0% { opacity: 0; transform: scale(0.3); }
+		20% { opacity: 1; transform: scale(1); }
+		60% { opacity: 1; }
+		100% { opacity: 0; transform: scale(1.5); }
+	}
+
+	.prestige-banner {
+		position: absolute;
+		inset: 0;
+		z-index: 55;
+		pointer-events: none;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		animation: banner-fade 3.3s ease-out forwards;
+	}
+
+	.prestige-banner-inner {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		padding: 30px 50px;
+		background: rgba(10, 10, 25, 0.92);
+		border: 3px solid var(--color-gold);
+		border-radius: 8px;
+		box-shadow: 0 0 40px rgba(255, 221, 85, 0.4), inset 0 0 20px rgba(255, 221, 85, 0.05);
+		animation: banner-scale 3.3s ease-out forwards;
+	}
+
+	.pb-star {
+		font-size: 32px;
+		color: var(--color-gold);
+		text-shadow: 0 0 20px rgba(255, 221, 85, 0.6);
+		animation: star-spin 1s ease-out;
+	}
+
+	.pb-title {
+		font-family: var(--font-pixel);
+		font-size: 20px;
+		color: var(--color-gold);
+		letter-spacing: 6px;
+		text-shadow: 0 0 16px rgba(255, 221, 85, 0.5);
+	}
+
+	.pb-level {
+		font-family: var(--font-pixel);
+		font-size: 14px;
+		color: var(--color-text);
+	}
+
+	.pb-shape {
+		font-family: var(--font-pixel);
+		font-size: 11px;
+		color: var(--color-accent);
+		text-shadow: 0 0 8px rgba(136, 170, 255, 0.4);
+	}
+
+	.pb-reward {
+		font-family: var(--font-pixel);
+		font-size: 11px;
+		color: var(--color-green);
+		text-shadow: 0 0 8px rgba(85, 255, 153, 0.4);
+	}
+
+	@keyframes banner-fade {
+		0% { opacity: 0; }
+		10% { opacity: 1; }
+		80% { opacity: 1; }
+		100% { opacity: 0; }
+	}
+
+	@keyframes banner-scale {
+		0% { transform: scale(0.8); }
+		15% { transform: scale(1.05); }
+		25% { transform: scale(1); }
+		80% { transform: scale(1); }
+		100% { transform: scale(0.95); }
+	}
+
+	@keyframes star-spin {
+		0% { transform: scale(0) rotate(-180deg); }
+		60% { transform: scale(1.3) rotate(10deg); }
+		100% { transform: scale(1) rotate(0deg); }
 	}
 
 	@keyframes popup-in {
