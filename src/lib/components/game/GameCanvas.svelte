@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { gameState, addResource, getProductionByResource, getUnlockedResources, loadStateFrom, getPlacedCount, tickGenerators, tickAutoSystems, tickFluxConvert, tickPuzzleChecks, tickPentagonStorage, tickAchievements, tickChallengeCheck } from '$lib/game/state.svelte.js';
 	import { startEngine, stopEngine, onTick } from '$lib/game/engine.js';
 	import { saveGame, loadGame, hasSave } from '$lib/game/save.js';
@@ -170,7 +171,7 @@
 
 	<div class="hud">
 		<button class="menu-btn" onclick={() => (menuOpen = true)} title="Menu">
-			<img src="/assets/ui/3%20Icons/Icons/Icon_14.png" alt="Menu" />
+			<img src="{base}/assets/ui/3%20Icons/Icons/Icon_14.png" alt="Menu" />
 		</button>
 		<div class="resources-row">
 			{#each unlockedResources as res}

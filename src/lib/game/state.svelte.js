@@ -1,3 +1,4 @@
+import { base } from "$app/paths";
 import {
   getShapeCost,
   SHAPE_DEFS,
@@ -49,14 +50,14 @@ export const RESOURCE_DEFS = {
     name: "Energy",
     color: "#44aaff",
     icon: "⚡",
-    iconPath: "/assets/icons/cyberpunk-skills/1 Icons/1/Skillicon1_20.png",
+    iconPath: `${base}/assets/icons/cyberpunk-skills/1 Icons/1/Skillicon1_20.png`,
     minPrestige: 0,
   },
   flux: {
     name: "Flux",
     color: "#ff44aa",
     icon: "🌀",
-    iconPath: "/assets/icons/cyberpunk-skills/1 Icons/10/Skillicon10_20.png",
+    iconPath: `${base}/assets/icons/cyberpunk-skills/1 Icons/10/Skillicon10_20.png`,
     minPrestige: 1,
     minLayer: 2,
   },
@@ -64,7 +65,7 @@ export const RESOURCE_DEFS = {
     name: "Prisms",
     color: "#aa44ff",
     icon: "💎",
-    iconPath: "/assets/icons/cyberpunk-skills/1 Icons/10/Skillicon10_05.png",
+    iconPath: `${base}/assets/icons/cyberpunk-skills/1 Icons/10/Skillicon10_05.png`,
     minPrestige: 2,
     minLayer: 3,
   },

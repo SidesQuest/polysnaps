@@ -1,7 +1,12 @@
 <script>
+	import { base } from '$app/paths';
 	import '../app.css';
 	let { children } = $props();
 </script>
+
+<svelte:head>
+	{@html `<style>@font-face { font-family: "CyberpunkCraftpix"; src: url("${base}/assets/ui/10%20Font/CyberpunkCraftpixPixel.otf") format("opentype"); font-display: swap; }</style>`}
+</svelte:head>
 
 <div class="app">
 	{@render children()}

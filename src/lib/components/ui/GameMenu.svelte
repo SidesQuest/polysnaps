@@ -1,4 +1,5 @@
 <script>
+	import { base } from '$app/paths';
 	import { gameState, respecSkills, convertSkillPoints } from '$lib/game/state.svelte.js';
 	import { saveGame, deleteSave, exportSaveFile, importSaveFile } from '$lib/game/save.js';
 	import { loadStateFrom } from '$lib/game/state.svelte.js';
@@ -86,14 +87,14 @@
 						<div class="menu-buttons">
 							<CyberButton variant="ghost" onclick={() => (tab = 'settings')}>
 								{#snippet children()}
-									<img src="/assets/ui/3%20Icons/Icons/Icon_14.png" alt="" />
+									<img src="{base}/assets/ui/3%20Icons/Icons/Icon_14.png" alt="" />
 									SETTINGS
 								{/snippet}
 							</CyberButton>
 
 							<CyberButton variant="ghost" onclick={() => (tab = 'stats')}>
 								{#snippet children()}
-									<img src="/assets/ui/3%20Icons/Icons/Icon_30.png" alt="" />
+									<img src="{base}/assets/ui/3%20Icons/Icons/Icon_30.png" alt="" />
 									STATS
 								{/snippet}
 							</CyberButton>
@@ -115,7 +116,7 @@
 
 							<CyberButton variant="ghost" onclick={() => (tab = 'info')}>
 								{#snippet children()}
-									<img src="/assets/ui/3%20Icons/Icons/Icon_20.png" alt="" />
+									<img src="{base}/assets/ui/3%20Icons/Icons/Icon_20.png" alt="" />
 									INFO
 								{/snippet}
 							</CyberButton>
@@ -256,10 +257,10 @@
 			</CyberPanel>
 
 			<div class="menu-decor left">
-				<img src="/assets/ui/9%20Other/1%20Decor/1.png" alt="" />
+				<img src="{base}/assets/ui/9%20Other/1%20Decor/1.png" alt="" />
 			</div>
 			<div class="menu-decor right">
-				<img src="/assets/ui/9%20Other/1%20Decor/3.png" alt="" />
+				<img src="{base}/assets/ui/9%20Other/1%20Decor/3.png" alt="" />
 			</div>
 		</div>
 	</div>

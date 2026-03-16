@@ -1,4 +1,5 @@
 <script>
+	import { base } from '$app/paths';
 	import { gameState } from '$lib/game/state.svelte.js';
 	import CyberButton from './CyberButton.svelte';
 
@@ -7,7 +8,7 @@
 
 <CyberButton variant="purple" onclick={() => (open = true)}>
 	{#snippet children()}
-		<img src="/assets/ui/9%20Other/3%20Skill%20icons/Skillicon7_08.png" alt="" />
+		<img src="{base}/assets/ui/9%20Other/3%20Skill%20icons/Skillicon7_08.png" alt="" />
 		SKILL TREE
 		<span class="pts">🔮 {gameState.prestige.currency}</span>
 	{/snippet}

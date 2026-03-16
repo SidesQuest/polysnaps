@@ -1,7 +1,9 @@
+import { base } from "$app/paths";
+
 const I = (set, num) =>
-  `/assets/icons/cyberpunk-skills/1 Icons/${set}/Skillicon${set}_${String(num).padStart(2, "0")}.png`;
+  `${base}/assets/icons/cyberpunk-skills/1 Icons/${set}/Skillicon${set}_${String(num).padStart(2, "0")}.png`;
 const F = (num) =>
-  `/assets/icons/cyberpunk-skills/2 Frames/Frame_${String(num).padStart(2, "0")}.png`;
+  `${base}/assets/icons/cyberpunk-skills/2 Frames/Frame_${String(num).padStart(2, "0")}.png`;
 
 export const BRANCH_DEFS = [
   { id: 0, name: "Production", icon: "⚡", color: "#44aaff", minPrestige: 0 },

@@ -1,11 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 
-@font-face {
-  font-family: "CyberpunkCraftpix";
-  src: url("/assets/ui/10%20Font/CyberpunkCraftpixPixel.otf") format("opentype");
-  font-display: swap;
-}
-
 :root {
   --color-bg: #141420;
   --color-surface: #1c2040;

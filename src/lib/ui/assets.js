@@ -1,4 +1,6 @@
-const UI = "/assets/ui";
+import { base } from "$app/paths";
+
+const UI = `${base}/assets/ui`;
 const FRAMES = `${UI}/1%20Frames`;
 const BARS = `${UI}/2%20Bars`;
 const ICONS = `${UI}/3%20Icons/Icons`;
