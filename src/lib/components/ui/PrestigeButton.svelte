@@ -46,46 +46,46 @@
 	.prestige-content {
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
+		gap: 4px;
 		text-align: center;
 		width: 100%;
 	}
 
 	.prestige-title {
-		font-size: 11px;
+		font-size: 13px;
 		color: var(--color-gold);
 		letter-spacing: 3px;
-		text-shadow: 0 0 10px rgba(255,221,85,0.4);
+		text-shadow: 0 0 12px rgba(255,221,85,0.5);
 	}
 
 	.prestige-desc {
-		font-size: 8px;
+		font-size: 9px;
 		color: #fff;
-		opacity: 0.8;
+		opacity: 0.85;
 	}
 
 	.prestige-reward {
-		font-size: 8px;
+		font-size: 10px;
 		color: var(--color-gold);
-		text-shadow: 0 0 6px rgba(255,221,85,0.3);
+		text-shadow: 0 0 8px rgba(255,221,85,0.4);
 	}
 
 	.prestige-warn {
-		font-size: 7px;
+		font-size: 8px;
 		color: var(--color-red);
-		opacity: 0.6;
+		opacity: 0.7;
 	}
 
 	.prestige-locked {
-		padding: 10px 12px;
+		padding: 12px 14px;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 10px;
 	}
 
 	.prestige-req {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 10px;
 		color: var(--color-text-dim);
 		text-align: center;
 	}

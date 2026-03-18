@@ -107,7 +107,7 @@
 		<div class="header-right">
 			<div class="branch-tags">
 				{#each visibleBranches as branch}
-					<span class="branch-tag" style="color: {branch.color}; border-color: {branch.color}33;">
+					<span class="branch-tag" style="color: {branch.color}; border-color: {branch.color}44;">
 						{branch.icon} {branch.name}
 					</span>
 				{/each}
@@ -211,9 +211,9 @@
 							/>
 						{/if}
 						{#if level > 0}
-							<text y={NODE_H/2 + 12} class="node-level" fill={nodeColor}>{level}/{def.maxLevel}</text>
+							<text y={NODE_H/2 + 14} class="node-level" fill={nodeColor}>{level}/{def.maxLevel}</text>
 						{:else}
-							<text y={NODE_H/2 + 12} class="node-cost" fill={getCostColor(def.costType)} class:cost-affordable={canDo}>
+							<text y={NODE_H/2 + 14} class="node-cost" fill={getCostColor(def.costType)} class:cost-affordable={canDo}>
 								{getCostIcon(def.costType)}{cost}
 							</text>
 						{/if}
@@ -302,7 +302,7 @@
 	.header-left {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 6px;
 	}
 
 	.header-right {
@@ -320,18 +320,18 @@
 	.branch-tag {
 		font-family: var(--font-pixel);
 		font-size: 10px;
-		padding: 4px 10px;
+		padding: 5px 12px;
 		border: 1px solid;
-		border-radius: 3px;
-		opacity: 0.8;
+		border-radius: 4px;
+		opacity: 0.85;
 	}
 
 	.header-title {
-		font-size: 16px;
-		color: #aa44ff;
+		font-size: 18px;
+		color: #bb66ff;
 		letter-spacing: 5px;
 		font-family: var(--font-pixel);
-		text-shadow: 0 0 12px rgba(170, 68, 255, 0.4);
+		text-shadow: 0 0 16px rgba(170, 68, 255, 0.5);
 	}
 
 	.header-sub {
@@ -343,17 +343,23 @@
 	.close-btn {
 		background: var(--color-surface);
 		border: 2px solid var(--color-border);
-		border-radius: 4px;
+		border-radius: 6px;
 		color: var(--color-text-dim);
 		font-size: 16px;
 		cursor: pointer;
-		padding: 8px 14px;
+		padding: 10px 16px;
 		font-family: var(--font-pixel);
+		min-width: 44px;
+		min-height: 44px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: color 0.15s, border-color 0.15s;
 	}
 
 	.close-btn:hover {
 		color: var(--color-red);
-		filter: brightness(1.3);
+		border-color: var(--color-red);
 	}
 
 	.skill-canvas {
@@ -379,39 +385,39 @@
 
 	.ring-guide {
 		fill: none;
-		stroke: rgba(100, 60, 180, 0.1);
+		stroke: rgba(100, 60, 180, 0.12);
 		stroke-width: 1;
 		pointer-events: none;
 	}
 
 	.branch-line {
 		stroke-width: 1;
-		opacity: 0.08;
+		opacity: 0.1;
 		pointer-events: none;
 	}
 
 	.branch-label {
 		font-family: var(--font-pixel);
-		font-size: 10px;
+		font-size: 11px;
 		text-anchor: middle;
-		opacity: 0.5;
+		opacity: 0.6;
 		pointer-events: none;
 	}
 
 	.skill-edge {
 		stroke: var(--color-border);
 		stroke-width: 2;
-		opacity: 0.25;
+		opacity: 0.3;
 		pointer-events: none;
 	}
 
 	.skill-edge.active {
 		stroke: #aa44ff;
-		opacity: 0.6;
+		opacity: 0.65;
 	}
 
 	.skill-edge.foggy {
-		opacity: 0.06;
+		opacity: 0.08;
 		stroke-dasharray: 4 6;
 	}
 
@@ -445,13 +451,13 @@
 	}
 
 	.node-bg.node-unlocked {
-		fill: rgba(170, 68, 255, 0.1);
+		fill: rgba(170, 68, 255, 0.12);
 		stroke-width: 2.5;
 	}
 
 	.node-bg.node-maxed {
 		stroke: var(--color-gold) !important;
-		fill: rgba(255, 221, 85, 0.08);
+		fill: rgba(255, 221, 85, 0.1);
 		stroke-width: 2.5;
 	}
 
@@ -471,13 +477,13 @@
 
 	.skill-node-g.can-unlock .node-bg {
 		animation: node-blink 1.5s ease-in-out infinite;
-		filter: drop-shadow(0 0 4px rgba(170, 68, 255, 0.4));
+		filter: drop-shadow(0 0 6px rgba(170, 68, 255, 0.5));
 	}
 
 	.node-glow {
 		fill: none;
 		stroke-width: 2;
-		opacity: 0.2;
+		opacity: 0.25;
 		pointer-events: none;
 	}
 
@@ -490,29 +496,29 @@
 		font-size: 14px;
 		fill: var(--color-text-dim);
 		text-anchor: middle;
-		opacity: 0.25;
+		opacity: 0.3;
 		pointer-events: none;
 		font-family: var(--font-pixel);
 	}
 
 	.node-level {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 9px;
 		text-anchor: middle;
 		pointer-events: none;
 	}
 
 	.node-cost {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 9px;
 		text-anchor: middle;
 		pointer-events: none;
-		opacity: 0.5;
+		opacity: 0.55;
 	}
 
 	.node-cost.cost-affordable {
 		opacity: 1;
-		font-size: 9px;
+		font-size: 10px;
 	}
 
 	.skill-tooltip {
@@ -521,62 +527,64 @@
 		left: 50%;
 		transform: translateX(-50%);
 		background: var(--color-surface);
-		border: 1px solid #aa44ff;
-		border-radius: 6px;
-		padding: 12px 16px;
+		border: 2px solid #aa44ff;
+		border-radius: 8px;
+		padding: 14px 18px;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		min-width: 240px;
-		max-width: 320px;
+		gap: 6px;
+		min-width: 260px;
+		max-width: 360px;
 		animation: tt-in 0.1s ease-out;
 		z-index: 10010;
 		font-family: var(--font-pixel);
+		box-shadow: 0 8px 24px rgba(0,0,0,0.5);
 	}
 
 	.tt-header {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.6rem;
 	}
 
 	.tt-header-text {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: 3px;
 	}
 
 	.tt-icon-img {
-		width: 28px;
-		height: 28px;
+		width: 32px;
+		height: 32px;
 		image-rendering: pixelated;
 	}
 
 	.tt-name {
-		font-size: 0.6rem;
+		font-size: 11px;
 		color: var(--color-text);
 	}
 
 	.tt-branch {
-		font-size: 0.4rem;
+		font-size: 9px;
 	}
 
 	.tt-desc {
-		font-size: 0.45rem;
+		font-size: 9px;
 		color: var(--color-text-dim);
+		line-height: 1.5;
 	}
 
 	.tt-effect {
-		font-size: 0.45rem;
+		font-size: 10px;
 		color: var(--color-green);
 	}
 
 	.tt-level {
-		font-size: 0.45rem;
+		font-size: 10px;
 	}
 
 	.tt-cost {
-		font-size: 0.5rem;
+		font-size: 10px;
 		color: var(--color-text-dim);
 	}
 
@@ -585,18 +593,18 @@
 	}
 
 	.tt-maxed {
-		font-size: 0.5rem;
+		font-size: 11px;
 		color: var(--color-gold);
 		letter-spacing: 3px;
 	}
 
 	.tt-req {
-		font-size: 0.4rem;
+		font-size: 9px;
 		color: var(--color-red);
 	}
 
 	.tt-unlock {
-		font-size: 0.4rem;
+		font-size: 9px;
 		color: var(--color-green);
 		text-transform: uppercase;
 		letter-spacing: 1px;
@@ -613,7 +621,35 @@
 	}
 
 	@keyframes node-blink {
-		0%, 100% { stroke-opacity: 0.6; filter: drop-shadow(0 0 3px rgba(170, 68, 255, 0.3)); }
-		50% { stroke-opacity: 1; filter: drop-shadow(0 0 8px rgba(170, 68, 255, 0.6)); }
+		0%, 100% { stroke-opacity: 0.6; filter: drop-shadow(0 0 4px rgba(170, 68, 255, 0.4)); }
+		50% { stroke-opacity: 1; filter: drop-shadow(0 0 10px rgba(170, 68, 255, 0.7)); }
+	}
+
+	@media (max-width: 768px) {
+		.skill-header {
+			padding: 0.6rem 0.8rem;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.header-right {
+			width: 100%;
+			justify-content: space-between;
+		}
+
+		.branch-tags {
+			flex-wrap: wrap;
+			gap: 4px;
+		}
+
+		.branch-tag {
+			font-size: 8px;
+			padding: 3px 8px;
+		}
+
+		.skill-tooltip {
+			bottom: 0.5rem;
+			max-width: 90vw;
+		}
 	}
 </style>

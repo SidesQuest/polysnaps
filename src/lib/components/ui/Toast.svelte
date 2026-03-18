@@ -26,58 +26,60 @@
 <style>
 	.toast-container {
 		position: fixed;
-		top: 60px;
+		top: 70px;
 		left: 50%;
 		transform: translateX(-50%);
 		z-index: 300;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 6px;
+		gap: 8px;
 		pointer-events: none;
 	}
 
 	.toast {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		padding: 8px 16px;
-		background: rgba(11, 11, 25, 0.95);
+		gap: 10px;
+		padding: 10px 20px;
+		background: rgba(11, 11, 25, 0.97);
 		border: 2px solid var(--toast-color);
-		border-radius: 3px;
+		border-radius: 6px;
 		box-shadow:
-			0 0 12px color-mix(in srgb, var(--toast-color) 30%, transparent),
+			0 0 16px color-mix(in srgb, var(--toast-color) 35%, transparent),
 			inset 0 0 8px color-mix(in srgb, var(--toast-color) 5%, transparent);
 		animation: toast-in 0.3s ease-out, toast-out 0.4s ease-in 3s forwards;
 		pointer-events: auto;
 	}
 
 	.toast-icon {
-		font-size: 14px;
+		font-size: 16px;
 		flex-shrink: 0;
 	}
 
 	.toast-msg {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 10px;
 		color: var(--toast-color);
-		text-shadow: 0 0 6px color-mix(in srgb, var(--toast-color) 30%, transparent);
+		text-shadow: 0 0 8px color-mix(in srgb, var(--toast-color) 35%, transparent);
 		white-space: nowrap;
 	}
 
 	.toast-big {
-		padding: 12px 20px;
-		animation: toast-big-in 0.4s ease-out, toast-out 0.4s ease-in 3s forwards;
+		padding: 16px 28px;
+		animation: toast-big-in 0.5s ease-out, toast-out 0.4s ease-in 4s forwards;
 		border-width: 3px;
+		background: rgba(11, 11, 25, 0.98);
 	}
 
 	.toast-big .toast-msg {
-		font-size: 10px;
+		font-size: 13px;
+		letter-spacing: 1px;
 	}
 
 	.toast-icon-big {
-		font-size: 20px;
-		animation: icon-bounce 0.5s ease-out;
+		font-size: 26px;
+		animation: icon-bounce 0.6s ease-out;
 	}
 
 	@keyframes toast-in {
@@ -115,5 +117,22 @@
 	@keyframes toast-out {
 		from { opacity: 1; }
 		to { opacity: 0; transform: translateY(-8px); }
+	}
+
+	@media (max-width: 768px) {
+		.toast-container {
+			top: auto;
+			bottom: 80px;
+			width: 92vw;
+		}
+
+		.toast {
+			max-width: 100%;
+		}
+
+		.toast-msg {
+			white-space: normal;
+			font-size: 9px;
+		}
 	}
 </style>

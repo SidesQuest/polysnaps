@@ -5,7 +5,10 @@
 </script>
 
 <svelte:head>
-	{@html `<style>@font-face { font-family: "CyberpunkCraftpix"; src: url("${base}/assets/ui/10%20Font/CyberpunkCraftpixPixel.otf") format("opentype"); font-display: swap; }</style>`}
+	{@html `<style>
+		@font-face { font-family: "CyberpunkCraftpix"; src: url("${base}/assets/ui/10%20Font/CyberpunkCraftpixPixel.otf") format("opentype"); font-display: swap; }
+		:root { --cursor-default: url("${base}/assets/ui/8%20Cursors/1.png") 2 2, auto; --cursor-pointer: url("${base}/assets/ui/8%20Cursors/2.png") 2 2, pointer; }
+	</style>`}
 </svelte:head>
 
 <div class="app">

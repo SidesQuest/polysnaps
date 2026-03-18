@@ -211,10 +211,12 @@ export function getNodeProduction(nodeId) {
 export function getMultiplierBonus(nodeId) {
   let bonus = 1;
   const children = getNodeChildren(nodeId);
+  const challengeRewards = getChallengeRewards(gameState.completedChallenges);
+  const multBoost = 1 + (challengeRewards.multiplier_boost || 0);
   for (const child of children) {
     const childDef = SHAPE_DEFS[child.shape];
     if (childDef && childDef.role === "multiplier") {
-      bonus *= childDef.multiplierValue || 1.5;
+      bonus *= (childDef.multiplierValue || 1.5) * multBoost;
     }
   }
   return bonus;
@@ -376,7 +378,7 @@ export function getBuffZones() {
 }
 
 export function getCurrentCombos() {
-  return getActiveCombos(gameState.nodes, gameState.coreShape.sides);
+  return getActiveCombos(gameState.nodes, gameState.coreShape.sides, gameState);
 }
 
 // ── Production calculation ───────────────────────────
@@ -387,10 +389,12 @@ export function getProductionByResource() {
   const activeCombos = getActiveCombos(
     gameState.nodes,
     gameState.coreShape.sides,
+    gameState,
   );
   let comboMult = getComboMultiplier(
     gameState.nodes,
     gameState.coreShape.sides,
+    gameState,
   );
   comboMult *= 1 + comboBoost;
   comboMult += comboSlots * activeCombos.length * 0.05;
@@ -622,7 +626,7 @@ export function placeShape(parentId, edgeIndex, shapeType = "triangle") {
   playPlace();
 
   const prevCombos = prevComboCount;
-  const newCombos = getActiveCombos(gameState.nodes, gameState.coreShape.sides);
+  const newCombos = getActiveCombos(gameState.nodes, gameState.coreShape.sides, gameState);
   if (newCombos.length > prevCombos) {
     playCombo();
     for (const combo of newCombos) {
@@ -915,6 +919,11 @@ export function resetForPrestige() {
       else gameState.activeChallenge = null;
     }
   }
+
+  gameState.stats.prestigedThisCheck = true;
+  setTimeout(() => {
+    gameState.stats.prestigedThisCheck = false;
+  }, 3000);
 
   const prestigeReward = getPrestigeReward();
 

@@ -3,7 +3,7 @@
 	import { gameState, respecSkills, convertSkillPoints } from '$lib/game/state.svelte.js';
 	import { saveGame, deleteSave, exportSaveFile, importSaveFile } from '$lib/game/save.js';
 	import { loadStateFrom } from '$lib/game/state.svelte.js';
-	import { isMuted, toggleMute } from '$lib/game/audio.js';
+	import { isMuted, toggleMute, getVolume, setVolume } from '$lib/game/audio.js';
 	import { formatNumber, formatTime } from '$lib/utils/format.js';
 	import { getAllAchievements } from '$lib/game/achievements.js';
 	import { CHALLENGE_DEFS, getAvailableChallenges } from '$lib/game/challenges.js';
@@ -15,6 +15,7 @@
 
 	let tab = $state('main');
 	let muted = $state(isMuted());
+	let volume = $state(getVolume());
 	let confirmReset = $state(false);
 	let confirmRespec = $state(false);
 	let saveFlash = $state(false);
@@ -123,7 +124,7 @@
 
 							<CyberButton variant="red" onclick={close}>
 								{#snippet children()}
-									RESUME
+									▶ RESUME
 								{/snippet}
 							</CyberButton>
 						</div>
@@ -135,9 +136,25 @@
 								<div class="setting-row">
 									<span class="setting-label">Sound</span>
 									<CyberButton small variant={muted ? 'purple' : 'green'} onclick={handleToggleMute}>
-										{#snippet children()}{muted ? 'OFF' : 'ON'}{/snippet}
+										{#snippet children()}{muted ? '🔇 OFF' : '🔊 ON'}{/snippet}
 									</CyberButton>
 								</div>
+								{#if !muted}
+								<div class="setting-row">
+									<span class="setting-label">Volume</span>
+									<div class="volume-control">
+										<input
+											type="range"
+											min="0"
+											max="100"
+											value={Math.round(volume * 100)}
+											oninput={(e) => { volume = e.target.value / 100; setVolume(volume); }}
+											class="volume-slider"
+										/>
+										<span class="volume-pct">{Math.round(volume * 100)}%</span>
+									</div>
+								</div>
+								{/if}
 								<div class="setting-row">
 									<span class="setting-label">Renderer</span>
 									<CyberButton small variant="ghost" onclick={() => (usePixi = !usePixi)}>
@@ -236,7 +253,8 @@
 						<div class="sub-panel">
 							<button class="back-btn" onclick={() => (tab = 'main')}>← BACK</button>
 							<div class="info-content">
-								<div class="info-logo">◆ POLYSNAPS ◆</div>
+								<img src="{base}/assets/ui/5%20Logo/Logo1.png" alt="Polysnaps" class="info-logo-img" />
+								<div class="info-logo">POLYSNAPS</div>
 								<p class="info-tagline">Snap. Flow. Grow.</p>
 								<div class="info-divider"></div>
 								<p class="info-text">
@@ -270,36 +288,36 @@
 	.menu-overlay {
 		position: fixed;
 		inset: 0;
-		background: rgba(5, 5, 15, 0.85);
+		background: rgba(5, 5, 15, 0.88);
 		z-index: 200;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		animation: fade-in 0.15s ease-out;
-		backdrop-filter: blur(4px);
+		backdrop-filter: blur(6px);
 	}
 
 	.menu-container {
 		position: relative;
-		width: 340px;
-		max-width: 90vw;
+		width: 380px;
+		max-width: 92vw;
 		animation: slide-in 0.2s ease-out;
 	}
 
 	.menu-body {
-		padding: 12px;
+		padding: 14px;
 		min-height: 200px;
 	}
 
 	.menu-buttons {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 8px;
 	}
 
 	.save-row {
 		display: flex;
-		gap: 4px;
+		gap: 6px;
 	}
 
 	.save-row > :global(button) {
@@ -325,7 +343,7 @@
 	}
 
 	.menu-decor img {
-		width: 24px;
+		width: 28px;
 		height: auto;
 		image-rendering: pixelated;
 	}
@@ -333,7 +351,7 @@
 	.sub-panel {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: 12px;
 	}
 
 	.back-btn {
@@ -341,15 +359,15 @@
 		background: transparent;
 		border: none;
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 10px;
 		color: var(--color-accent);
 		cursor: pointer;
-		padding: 4px 0;
+		padding: 6px 2px;
+		transition: color 0.15s;
 	}
 
 	.back-btn:hover {
-		color: #aaccff;
-		text-decoration: underline;
+		color: #bbddff;
 	}
 
 	.settings-grid, .stats-grid {
@@ -362,10 +380,10 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 6px 8px;
+		padding: 8px 12px;
 		background: rgba(255,255,255,0.02);
-		border: 1px solid #2a2f55;
-		border-radius: 2px;
+		border: 1px solid #2a3058;
+		border-radius: 4px;
 	}
 
 	.setting-row.danger {
@@ -374,28 +392,72 @@
 
 	.setting-label {
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 10px;
 		color: var(--color-text);
 	}
 
 	.setting-value {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 10px;
 		color: var(--color-text-dim);
+	}
+
+	.volume-control {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.volume-slider {
+		width: 100px;
+		height: 8px;
+		-webkit-appearance: none;
+		appearance: none;
+		background: #1a1f40;
+		border-radius: 4px;
+		border: 1px solid var(--color-border);
+		outline: none;
+	}
+
+	.volume-slider::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		width: 16px;
+		height: 16px;
+		border-radius: 3px;
+		background: var(--color-accent);
+		cursor: pointer;
+		border: 2px solid #4a6090;
+	}
+
+	.volume-slider::-moz-range-thumb {
+		width: 16px;
+		height: 16px;
+		border-radius: 3px;
+		background: var(--color-accent);
+		cursor: pointer;
+		border: 2px solid #4a6090;
+	}
+
+	.volume-pct {
+		font-family: var(--font-pixel);
+		font-size: 9px;
+		color: var(--color-text-dim);
+		min-width: 32px;
+		text-align: right;
 	}
 
 	.divider {
 		height: 1px;
 		background: var(--color-border);
-		margin: 4px 0;
+		margin: 2px 0;
 	}
 
 	.stat-row {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 5px 8px;
-		border-bottom: 1px solid #1a1f40;
+		padding: 7px 10px;
+		border-bottom: 1px solid #1c2248;
 	}
 
 	.stat-row:last-child {
@@ -404,13 +466,13 @@
 
 	.stat-label {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 10px;
 		color: var(--color-text-dim);
 	}
 
 	.stat-value {
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 11px;
 		color: var(--color-text);
 	}
 
@@ -420,22 +482,29 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 8px;
+		gap: 10px;
 		text-align: center;
-		padding: 8px 0;
+		padding: 10px 0;
+	}
+
+	.info-logo-img {
+		width: 64px;
+		height: auto;
+		image-rendering: pixelated;
+		filter: drop-shadow(0 0 8px rgba(136, 170, 255, 0.4));
 	}
 
 	.info-logo {
 		font-family: var(--font-pixel);
-		font-size: 14px;
+		font-size: 16px;
 		color: var(--color-accent);
-		text-shadow: 0 0 12px rgba(136, 170, 255, 0.4);
-		letter-spacing: 3px;
+		text-shadow: 0 0 16px rgba(136, 170, 255, 0.5);
+		letter-spacing: 4px;
 	}
 
 	.info-tagline {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 10px;
 		color: var(--color-text-dim);
 		font-style: italic;
 	}
@@ -448,24 +517,24 @@
 
 	.info-text {
 		font-family: var(--font-pixel);
-		font-size: 7px;
+		font-size: 9px;
 		color: var(--color-text-dim);
-		line-height: 1.8;
-		max-width: 260px;
+		line-height: 2;
+		max-width: 280px;
 	}
 
 	.info-credits {
 		font-family: var(--font-pixel);
-		font-size: 6px;
+		font-size: 8px;
 		color: var(--color-text-dim);
-		opacity: 0.6;
+		opacity: 0.7;
 	}
 
 	.info-version {
 		font-family: var(--font-pixel);
-		font-size: 6px;
+		font-size: 8px;
 		color: var(--color-text-dim);
-		opacity: 0.4;
+		opacity: 0.5;
 	}
 
 	@keyframes fade-in {

@@ -85,7 +85,7 @@
 						onclick={() => upgradeTier(info.tier)}
 						disabled={!canUp}
 					>
-						<span class="tier-dot" style="background: {color}; box-shadow: 0 0 6px {color}44;"></span>
+						<span class="tier-dot" style="background: {color}; box-shadow: 0 0 8px {color}55;"></span>
 						<span class="tier-name">T{info.tier}</span>
 						<CyberBar value={tierLvl} max={tierLvl + 1} color={barColor} />
 						<span class="tier-lv">Lv{tierLvl}</span>
@@ -105,40 +105,41 @@
 
 <style>
 	.shop-body {
-		padding: 12px;
+		padding: 14px;
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: 14px;
 	}
 
 	.place-section {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 8px;
 	}
 
 	.shape-row {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 8px 10px;
+		gap: 12px;
+		padding: 10px 12px;
 		background: rgba(255, 255, 255, 0.02);
-		border: 2px solid #2a2f55;
-		border-radius: 3px;
+		border: 2px solid #2a3058;
+		border-radius: 5px;
 		font-family: var(--font-pixel);
 		color: var(--color-text-dim);
 		opacity: 0.5;
-		transition: opacity 0.15s, border-color 0.15s;
+		transition: opacity 0.15s, border-color 0.15s, background 0.15s;
 	}
 
 	.shape-row.affordable {
 		opacity: 1;
 		border-color: var(--color-border-light);
+		background: rgba(255, 255, 255, 0.03);
 	}
 
 	.shape-icon {
-		font-size: 18px;
-		width: 24px;
+		font-size: 20px;
+		width: 28px;
 		text-align: center;
 	}
 
@@ -146,28 +147,28 @@
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
+		gap: 4px;
 		min-width: 0;
 	}
 
 	.shape-name {
-		font-size: 10px;
+		font-size: 11px;
 		color: var(--color-text);
 	}
 
 	.shape-costs {
 		display: flex;
-		gap: 8px;
+		gap: 10px;
 	}
 
 	.cost-item {
-		font-size: 9px;
+		font-size: 10px;
 	}
 
 	.shape-role {
-		font-size: 8px;
+		font-size: 9px;
 		color: var(--color-text-dim);
-		opacity: 0.6;
+		opacity: 0.7;
 		text-transform: uppercase;
 		letter-spacing: 1px;
 	}
@@ -175,9 +176,9 @@
 	.place-stats {
 		display: flex;
 		justify-content: center;
-		gap: 8px;
+		gap: 10px;
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 10px;
 		color: var(--color-text-dim);
 		padding-top: 4px;
 	}
@@ -187,14 +188,14 @@
 	.tier-section {
 		display: flex;
 		flex-direction: column;
-		gap: 5px;
+		gap: 6px;
 	}
 
 	.section-divider {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		margin-bottom: 4px;
+		gap: 10px;
+		margin-bottom: 6px;
 	}
 
 	.divider-line {
@@ -205,27 +206,27 @@
 
 	.divider-text {
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 10px;
 		color: var(--color-text-dim);
-		letter-spacing: 2px;
+		letter-spacing: 3px;
 	}
 
 	.tier-row {
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		padding: 8px 10px;
+		padding: 10px 12px;
 		background: rgba(255, 255, 255, 0.02);
-		border: 2px solid #2a2f55;
-		border-radius: 3px;
+		border: 2px solid #2a3058;
+		border-radius: 5px;
 		font-family: var(--font-pixel);
 		color: var(--color-text);
 		cursor: pointer;
-		transition: border-color 0.15s;
+		transition: border-color 0.15s, background 0.15s;
 	}
 
 	.tier-row:not(:disabled):hover {
-		background: rgba(136, 170, 255, 0.05);
+		background: rgba(136, 170, 255, 0.06);
 		border-color: var(--color-border-light);
 	}
 
@@ -234,50 +235,52 @@
 	}
 
 	.tier-row:disabled {
-		opacity: 0.3;
+		opacity: 0.35;
 		cursor: not-allowed;
 	}
 
 	.tier-dot {
-		width: 10px;
-		height: 10px;
-		border-radius: 2px;
+		width: 12px;
+		height: 12px;
+		border-radius: 3px;
 		flex-shrink: 0;
 	}
 
 	.tier-name {
-		font-size: 10px;
-		min-width: 24px;
+		font-size: 11px;
+		min-width: 26px;
 	}
 
 	.tier-lv {
-		font-size: 9px;
+		font-size: 10px;
 		color: var(--color-text-dim);
-		min-width: 28px;
+		min-width: 30px;
 		text-align: right;
 	}
 
 	.tier-cost {
-		font-size: 9px;
+		font-size: 10px;
 		color: var(--color-text-dim);
-		min-width: 40px;
+		min-width: 44px;
 		text-align: right;
 	}
 
 	.tier-cost.can-afford {
 		color: var(--color-gold);
+		text-shadow: 0 0 4px rgba(255,221,85,0.3);
 	}
 
 	.expand-toggle {
-		padding: 6px;
+		padding: 8px;
 		background: transparent;
 		border: none;
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 10px;
 		color: var(--color-text-dim);
 		cursor: pointer;
 		text-align: center;
-		opacity: 0.6;
+		opacity: 0.7;
+		transition: opacity 0.15s, color 0.15s;
 	}
 
 	.expand-toggle:hover {

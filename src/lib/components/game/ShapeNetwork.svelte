@@ -5,12 +5,12 @@
 	import { buildGeometryTree, getOpenSlots, verticesToString, getPolygonPointsString, getCoreVertices, SHAPE_DEFS } from '$lib/game/shapes.js';
 	import { isPointRevealed, FOG_CELL_SIZE, getRevealedCells } from '$lib/game/fog.js';
 	import { getZoneBonus } from '$lib/game/buffzones.js';
-	import { playClick } from '$lib/game/audio.js';
+	import { playClick, playError } from '$lib/game/audio.js';
 	import { formatNumber } from '$lib/utils/format.js';
 
 	const CORE_RADIUS = 50;
 	const TIER_COLORS = ['#44aaff', '#44ff88', '#ffcc44', '#ff44aa', '#aa44ff', '#44ffff'];
-	const MAX_FLOW_PATHS = 15;
+	const MAX_FLOW_PATHS = 10;
 
 	let svgEl = $state(null);
 
@@ -46,8 +46,23 @@
 		buildGeometryTree(gameState.nodes, gameState.coreShape.sides, CORE_RADIUS)
 	);
 
+	let allOpenSlots = $derived(
+		getOpenSlots(gameState.nodes, gameState.coreShape.sides, CORE_RADIUS, selectedShape)
+	);
+
+	let maxPlacedDepth = $derived.by(() => {
+		let maxD = 0;
+		for (const n of gameState.nodes) {
+			if (n.id === 'core') continue;
+			let d = 0, cur = n;
+			while (cur && cur.parentId) { d++; cur = gameState.nodes.find(nd => nd.id === cur.parentId); }
+			if (d > maxD) maxD = d;
+		}
+		return maxD;
+	});
+
 	let openSlots = $derived(
-		getOpenSlots(gameState.nodes, gameState.coreShape.sides, CORE_RADIUS)
+		allOpenSlots.filter(s => s.layer <= maxPlacedDepth + 1)
 	);
 
 	let buffZones = $derived(getBuffZones());
@@ -148,11 +163,20 @@
 
 			const pathStr = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
 			const depth = getNodeDepth(leaf.node.id);
-			const color = getLayerColor(depth);
+			let resColor = getLayerColor(depth);
+			let traceNode = leaf.node;
+			while (traceNode && traceNode.parentId && traceNode.parentId !== 'core') {
+				traceNode = gameState.nodes.find((n) => n.id === traceNode.parentId);
+			}
+			if (traceNode && traceNode.parentId === 'core') {
+				const resKey = getEdgeResource(traceNode.edgeIndex);
+				const resDef = RESOURCE_DEFS[resKey];
+				if (resDef) resColor = resDef.color;
+			}
 			const segCount = points.length - 1;
 			const dur = 1.2 + segCount * 0.5;
 
-			return { id: leaf.node.id, path: pathStr, color, dur, depth };
+			return { id: leaf.node.id, path: pathStr, color: resColor, dur, depth };
 		});
 	});
 
@@ -211,11 +235,19 @@
 		}, 500);
 	}
 
-	function triggerShake() {
-		shakeX = (Math.random() - 0.5) * 4;
-		shakeY = (Math.random() - 0.5) * 4;
-		setTimeout(() => { shakeX = 0; shakeY = 0; }, 100);
+	function triggerShake(intensity = 4) {
+		shakeX = (Math.random() - 0.5) * intensity;
+		shakeY = (Math.random() - 0.5) * intensity;
+		setTimeout(() => { shakeX = 0; shakeY = 0; }, 120);
 	}
+
+	function haptic(ms = 15) {
+		if (typeof navigator !== 'undefined' && navigator.vibrate) {
+			navigator.vibrate(ms);
+		}
+	}
+
+	let coreFlash = $state(false);
 
 	function handleCoreClick(e) {
 		e.preventDefault();
@@ -231,11 +263,17 @@
 
 		const result = performClick();
 		playClick();
+		triggerShake(result.isBurst ? 8 : 2);
+		haptic(result.isBurst ? 40 : 10);
 
 		const text = result.isBurst ? `⚡${formatNumber(result.value)}!` : `+${formatNumber(result.value)}`;
-		const color = result.isBurst ? '#ffcc44' : '#44aaff';
+		const color = result.isBurst ? '#ffcc44' : '#88ccff';
 		spawnFloatingNum(0, -15, text, color);
-		if (result.isBurst) triggerShake();
+
+		if (result.isBurst) {
+			coreFlash = true;
+			setTimeout(() => (coreFlash = false), 300);
+		}
 	}
 
 	function handleSlotClick(e, slot) {
@@ -246,7 +284,20 @@
 			if (ok) {
 				const depth = slot.layer || 1;
 				spawnPlaceParticles(slot.center.x, slot.center.y, getLayerColor(depth));
+				haptic(20);
+				const prod = getNodeProduction(gameState.nodes[gameState.nodes.length - 1]?.id);
+				if (prod > 0) {
+					const resKey = slot.parentId === 'core' ? getEdgeResource(slot.edgeIndex) : null;
+					const resDef = resKey ? RESOURCE_DEFS[resKey] : null;
+					const prodColor = resDef ? resDef.color : getLayerColor(depth);
+					spawnFloatingNum(slot.center.x, slot.center.y - 10, `+${formatNumber(prod)}/s`, prodColor);
+				}
+			} else {
+				playError();
 			}
+		} else {
+			playError();
+			haptic(5);
 		}
 	}
 
@@ -264,6 +315,13 @@
 			triggerShake();
 		}
 	}
+
+	let isTouchDevice = $state(false);
+	let lastTouchDist = $state(0);
+
+	onMount(() => {
+		isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+	});
 
 	function handleWheel(e) {
 		e.preventDefault();
@@ -291,6 +349,58 @@
 
 	function handleMouseUp() {
 		isPanning = false;
+	}
+
+	function handleTouchStart(e) {
+		if (e.touches.length === 2) {
+			e.preventDefault();
+			isPanning = true;
+			const dx = e.touches[0].clientX - e.touches[1].clientX;
+			const dy = e.touches[0].clientY - e.touches[1].clientY;
+			lastTouchDist = Math.sqrt(dx * dx + dy * dy);
+			const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+			const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+			lastMouse = { x: mx, y: my };
+		} else if (e.touches.length === 1) {
+			isPanning = true;
+			lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+		}
+	}
+
+	function handleTouchMove(e) {
+		if (e.touches.length === 2) {
+			e.preventDefault();
+			const dx = e.touches[0].clientX - e.touches[1].clientX;
+			const dy = e.touches[0].clientY - e.touches[1].clientY;
+			const dist = Math.sqrt(dx * dx + dy * dy);
+			if (lastTouchDist > 0) {
+				const scale = dist / lastTouchDist;
+				zoom = Math.max(0.3, Math.min(5, zoom * scale));
+			}
+			lastTouchDist = dist;
+			const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+			const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+			panX += (mx - lastMouse.x) * 0.5 / zoom;
+			panY += (my - lastMouse.y) * 0.5 / zoom;
+			lastMouse = { x: mx, y: my };
+		} else if (e.touches.length === 1 && isPanning) {
+			const dx = e.touches[0].clientX - lastMouse.x;
+			const dy = e.touches[0].clientY - lastMouse.y;
+			if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+				panX += dx * 0.5 / zoom;
+				panY += dy * 0.5 / zoom;
+				lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+			}
+		}
+	}
+
+	function handleTouchEnd(e) {
+		if (e.touches.length < 2) {
+			lastTouchDist = 0;
+		}
+		if (e.touches.length === 0) {
+			isPanning = false;
+		}
 	}
 
 	function handleShapeHover(geo) {
@@ -344,8 +454,24 @@
 	onmousemove={handleMouseMove}
 	onmouseup={handleMouseUp}
 	onmouseleave={handleMouseUp}
+	ontouchstart={handleTouchStart}
+	ontouchmove={handleTouchMove}
+	ontouchend={handleTouchEnd}
 	role="img"
 >
+	<defs>
+		{#each TIER_COLORS as color, i}
+			<radialGradient id="shape-fill-{i}" cx="50%" cy="50%" r="60%">
+				<stop offset="0%" stop-color="{color}" stop-opacity="0.03" />
+				<stop offset="100%" stop-color="{color}" stop-opacity="0.12" />
+			</radialGradient>
+			<radialGradient id="shape-fill-bright-{i}" cx="50%" cy="50%" r="60%">
+				<stop offset="0%" stop-color="{color}" stop-opacity="0.06" />
+				<stop offset="100%" stop-color="{color}" stop-opacity="0.18" />
+			</radialGradient>
+		{/each}
+	</defs>
+
 	{#each buffZones as zone}
 		{@const hexPoints = Array.from({length: 6}, (_, i) => {
 			const a = (i * Math.PI * 2) / 6 - Math.PI / 6;
@@ -353,18 +479,15 @@
 		}).join(' ')}
 		<polygon
 			points={hexPoints}
-			fill="{zone.color}12"
+			fill="{zone.color}08"
 			stroke={zone.color}
-			stroke-width="1.2"
-			stroke-dasharray="6 4"
-			opacity="0.45"
+			stroke-width="0.8"
+			stroke-dasharray="8 6"
+			opacity="0.25"
 			class="buff-zone"
 		/>
-		<text x={zone.x} y={zone.y} class="zone-label-center" fill={zone.color}>
-			{zone.icon}
-		</text>
-		<text x={zone.x} y={zone.y + 10} class="zone-label-name" fill={zone.color}>
-			{zone.name}
+		<text x={zone.x} y={zone.y + 4} class="zone-label-name" fill={zone.color}>
+			{zone.icon} {zone.name}
 		</text>
 	{/each}
 
@@ -411,29 +534,27 @@
 		{#each openSlots as slot}
 			{@const slotResKey = slot.parentId === 'core' ? getEdgeResource(slot.edgeIndex) : null}
 			{@const slotRes = slotResKey ? RESOURCE_DEFS[slotResKey] : null}
-			{@const shapeSides = SHAPE_DEFS[selectedShape]?.sides || 3}
-			{@const shapeSymbol = shapeSides === 3 ? '△' : shapeSides === 4 ? '□' : shapeSides === 5 ? '⬠' : '⬡'}
-			<polygon
-				points={verticesToString(slot.vertices)}
-				class="empty-slot affordable"
-				onclick={(e) => handleSlotClick(e, slot)}
-				onkeydown={(e) => e.key === 'Enter' && handleSlotClick(e, slot)}
-				role="button"
-				tabindex="0"
-			/>
-			<text
-				x={slot.center.x}
-				y={slot.center.y + (slotRes ? -2 : 2)}
-				class="slot-shape-hint"
-			>{shapeSymbol}</text>
-			{#if slotRes}
-				<text
-					x={slot.center.x}
-					y={slot.center.y + 8}
-					class="slot-resource-hint"
-					fill={slotRes.color}
-				>{slotRes.icon}</text>
-			{/if}
+			{@const isCore = slot.parentId === 'core'}
+			<g class="slot-group" class:core-slot={isCore}>
+				<polygon
+					points={verticesToString(slot.vertices)}
+					class="empty-slot affordable"
+					onclick={(e) => handleSlotClick(e, slot)}
+					onkeydown={(e) => e.key === 'Enter' && handleSlotClick(e, slot)}
+					role="button"
+					tabindex="0"
+				/>
+				{#if slotRes}
+					<text
+						x={slot.center.x}
+						y={slot.center.y + 3}
+						class="slot-resource-hint"
+						fill={slotRes.color}
+					>{slotRes.icon}</text>
+				{:else}
+					<circle cx={slot.center.x} cy={slot.center.y} r="3" class="slot-dot" />
+				{/if}
+			</g>
 		{/each}
 	{/if}
 
@@ -443,9 +564,17 @@
 			{#each clickRipples as rid (rid)}
 				<circle cx="0" cy="0" r="10" class="click-ripple" />
 			{/each}
+			
+			{#if gameState.prestige.level >= 2}
+				<circle cx="0" cy="0" r={CORE_RADIUS + 15} class="core-aura" style="stroke: {gameState.prestige.level >= 3 ? '#aa44ff' : '#44aaff'};" />
+			{/if}
+			
 			<polygon
 				points={verticesToString(geo.vertices)}
 				class="core-polygon"
+				class:core-p1={gameState.prestige.level >= 1}
+				class:core-p2={gameState.prestige.level >= 2}
+				class:core-p3={gameState.prestige.level >= 3}
 				onclick={handleCoreClick}
 				onkeydown={(e) => e.key === 'Enter' && handleCoreClick(e)}
 				role="button"
@@ -454,8 +583,12 @@
 			<polygon
 				points={getPolygonPointsString(gameState.coreShape.sides, CORE_RADIUS - 10)}
 				class="core-inner"
+				class:core-inner-glow={gameState.prestige.level >= 1}
 			/>
 			<text y="4" class="core-text">TAP</text>
+			{#if coreFlash}
+				<circle cx="0" cy="0" r="60" class="core-burst-flash" />
+			{/if}
 			{#each coreEdgeMids as em}
 				<line
 					x1={em.edgeX1} y1={em.edgeY1}
@@ -465,7 +598,7 @@
 				/>
 				<text x={em.x} y={em.y + 4} class="core-resource-icon" fill={em.color}>{em.icon}</text>
 			{/each}
-			</g>
+		</g>
 		{:else}
 			{@const depth = getNodeDepth(geo.node.id)}
 			{@const color = getLayerColor(depth)}
@@ -485,7 +618,7 @@
 				class:pentagon-full={isPentagon && pentPct > 0.9}
 				class:pentagon-clickable={isPentagon && pentStored > 0}
 				class:hex-synergy={isHexSynergy}
-				style="stroke: {color};"
+				style="stroke: {color}; fill: url(#shape-fill-{(depth - 1) % TIER_COLORS.length});"
 				onclick={isPentagon ? (e) => handlePentagonClick(e, geo) : undefined}
 				onmouseenter={() => handleShapeHover(geo)}
 				onmouseleave={() => (hoveredNode = null)}
@@ -567,7 +700,7 @@
 	<text
 		x={bounds.x + 8} y={bounds.y + 14}
 		class="controls-hint"
-	>scroll to zoom · shift+drag to pan</text>
+	>{isTouchDevice ? 'pinch to zoom · drag to pan' : 'scroll to zoom · shift+drag to pan'}</text>
 </svg>
 
 {#if availableShapes.length > 1}
@@ -613,19 +746,12 @@
 		pointer-events: none;
 	}
 
-	.zone-label-center {
-		font-size: 10px;
-		text-anchor: middle;
-		pointer-events: none;
-		opacity: 0.7;
-	}
-
 	.zone-label-name {
 		font-family: var(--font-pixel);
 		font-size: 5px;
 		text-anchor: middle;
 		pointer-events: none;
-		opacity: 0.5;
+		opacity: 0.35;
 	}
 
 	.flow-particle {
@@ -667,11 +793,18 @@
 	}
 
 	.core-text {
-		fill: var(--color-text-dim);
+		fill: var(--color-text);
 		font-family: var(--font-pixel);
-		font-size: 9px;
+		font-size: 10px;
 		text-anchor: middle;
 		pointer-events: none;
+		opacity: 0.8;
+		animation: core-text-pulse 2s ease-in-out infinite alternate;
+	}
+
+	@keyframes core-text-pulse {
+		0% { opacity: 0.6; }
+		100% { opacity: 1; }
 	}
 
 	.core-resource-icon {
@@ -685,14 +818,65 @@
 		pointer-events: none;
 	}
 
+	.core-aura {
+		fill: none;
+		stroke-width: 1;
+		opacity: 0.2;
+		pointer-events: none;
+		animation: core-aura-pulse 3s ease-in-out infinite;
+	}
+
+	@keyframes core-aura-pulse {
+		0%, 100% { opacity: 0.1; r: attr(r); }
+		50% { opacity: 0.3; }
+	}
+
+	.core-polygon.core-p1 {
+		filter: drop-shadow(0 0 4px rgba(68, 170, 255, 0.3));
+	}
+
+	.core-polygon.core-p2 {
+		filter: drop-shadow(0 0 8px rgba(68, 170, 255, 0.4));
+		stroke-width: 3;
+	}
+
+	.core-polygon.core-p3 {
+		filter: drop-shadow(0 0 12px rgba(170, 68, 255, 0.5));
+		stroke-width: 3;
+		stroke: #aa66ff;
+	}
+
+	.core-inner-glow {
+		opacity: 0.25;
+		animation: core-inner-pulse 2s ease-in-out infinite alternate;
+	}
+
+	@keyframes core-inner-pulse {
+		0% { opacity: 0.15; }
+		100% { opacity: 0.35; }
+	}
+
+	.core:not(.pulse) .core-polygon {
+		animation: core-idle-pulse 3s ease-in-out infinite;
+	}
+
+	@keyframes core-idle-pulse {
+		0%, 100% { filter: brightness(1); }
+		50% { filter: brightness(1.15); }
+	}
+
 	.placed-shape {
-		fill: rgba(11, 11, 25, 0.8);
 		stroke-width: 1.8;
 		cursor: default;
+		transition: filter 0.3s;
+	}
+
+	.placed-shape:hover {
+		filter: brightness(1.3);
 	}
 
 	.placed-shape.in-zone {
-		fill: rgba(20, 20, 50, 0.8);
+		filter: brightness(1.1);
 	}
 
 	.shape-level {
@@ -710,35 +894,50 @@
 		opacity: 0.6;
 	}
 
-	.empty-slot {
-		fill: transparent;
-		stroke: var(--color-gold);
-		stroke-width: 1;
-		stroke-dasharray: 4 4;
-		opacity: 0.3;
-		cursor: pointer;
-		outline: none;
+	.slot-group {
+		opacity: 0.2;
+		transition: opacity 0.2s;
 	}
 
-	.empty-slot:hover {
+	.slot-group:hover {
 		opacity: 1;
-		fill: rgba(255, 221, 85, 0.08);
-		animation: slot-blink 0.6s steps(2) infinite;
 	}
 
-	.slot-shape-hint {
-		fill: var(--color-gold);
-		font-size: 7px;
-		text-anchor: middle;
-		pointer-events: none;
+	.slot-group.core-slot {
 		opacity: 0.5;
 	}
 
+	.slot-group.core-slot:hover {
+		opacity: 1;
+	}
+
+	.empty-slot {
+		fill: transparent;
+		stroke: var(--color-gold);
+		stroke-width: 0.8;
+		stroke-dasharray: 4 5;
+		cursor: pointer;
+		outline: none;
+		transition: fill 0.15s, stroke-width 0.15s;
+	}
+
+	.slot-group:hover .empty-slot {
+		fill: rgba(255, 221, 85, 0.08);
+		stroke-width: 1.5;
+		stroke-dasharray: 5 3;
+	}
+
+	.slot-dot {
+		fill: var(--color-gold);
+		opacity: 0.5;
+		pointer-events: none;
+	}
+
 	.slot-resource-hint {
-		font-size: 6px;
+		font-size: 7px;
 		text-anchor: middle;
 		pointer-events: none;
-		opacity: 0.4;
+		opacity: 0.6;
 	}
 
 	.tooltip {
@@ -747,44 +946,55 @@
 
 	.tooltip-title {
 		font-family: var(--font-pixel);
-		font-size: 5px;
+		font-size: 5.5px;
 		text-anchor: middle;
 	}
 
 	.tooltip-prod {
 		font-family: var(--font-pixel);
-		font-size: 4.5px;
+		font-size: 5px;
 		fill: var(--color-green);
 		text-anchor: middle;
 	}
 
 	.tooltip-subtitle {
 		font-family: var(--font-pixel);
-		font-size: 4px;
+		font-size: 4.5px;
 		fill: var(--color-text-dim);
 		text-anchor: middle;
 	}
 
 	.tooltip-zone {
 		font-family: var(--font-pixel);
-		font-size: 4px;
+		font-size: 4.5px;
 		fill: var(--color-gold);
 		text-anchor: middle;
 	}
 
 	.controls-hint {
 		font-family: var(--font-pixel);
-		font-size: 4px;
-		fill: var(--color-text-dim);
-		opacity: 0.3;
+		font-size: 5px;
+		fill: var(--color-text);
+		opacity: 0.45;
 	}
 
 	.click-ripple {
 		fill: none;
 		stroke: var(--color-accent);
-		stroke-width: 2;
+		stroke-width: 2.5;
 		pointer-events: none;
 		animation: ripple-expand 0.6s ease-out forwards;
+	}
+
+	.core-burst-flash {
+		fill: rgba(255, 221, 85, 0.3);
+		pointer-events: none;
+		animation: burst-flash 0.3s ease-out forwards;
+	}
+
+	@keyframes burst-flash {
+		0% { opacity: 1; r: 30; }
+		100% { opacity: 0; r: 100; }
 	}
 
 	@keyframes core-pulse {
@@ -813,21 +1023,25 @@
 
 	.floating-num {
 		font-family: var(--font-pixel);
-		font-size: 8px;
+		font-size: 10px;
 		text-anchor: middle;
 		pointer-events: none;
-		animation: float-up 0.9s ease-out forwards;
+		animation: float-up 1s ease-out forwards;
+		filter: drop-shadow(0 0 3px currentColor);
 	}
 
 	@keyframes float-up {
 		0% {
 			opacity: 1;
-			transform: translateY(0);
+			transform: translateY(0) scale(1.2);
+		}
+		15% {
+			transform: translateY(-5px) scale(1);
 		}
 		70% { opacity: 1; }
 		100% {
 			opacity: 0;
-			transform: translateY(-30px);
+			transform: translateY(-35px) scale(0.8);
 		}
 	}
 
@@ -866,17 +1080,13 @@
 		100% { filter: drop-shadow(0 0 6px rgba(170, 68, 255, 0.6)) brightness(1.15); }
 	}
 
-	.placed-shape {
-		transition: filter 0.3s;
-	}
-
 	.buff-zone {
 		animation: zone-glow 3s ease-in-out infinite alternate;
 	}
 
 	@keyframes zone-glow {
-		0% { opacity: 0.35; }
-		100% { opacity: 0.55; }
+		0% { opacity: 0.2; }
+		100% { opacity: 0.3; }
 	}
 
 	.puzzle-slot {
@@ -924,33 +1134,36 @@
 
 	.shape-selector {
 		position: absolute;
-		bottom: 12px;
+		bottom: 14px;
 		left: 50%;
 		transform: translateX(-50%);
 		display: flex;
-		gap: 6px;
-		background: rgba(20, 20, 32, 0.95);
+		gap: 8px;
+		background: rgba(14, 16, 36, 0.97);
 		border: 2px solid var(--color-border);
-		border-radius: 6px;
-		padding: 8px 12px;
-		backdrop-filter: blur(6px);
+		border-radius: 8px;
+		padding: 10px 14px;
+		backdrop-filter: blur(8px);
+		box-shadow: 0 4px 20px rgba(0,0,0,0.5);
 	}
 
 	.shape-btn {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 4px;
-		padding: 8px 14px;
+		gap: 5px;
+		padding: 10px 16px;
 		background: transparent;
 		border: 2px solid var(--color-border);
-		border-radius: 4px;
+		border-radius: 6px;
 		cursor: pointer;
 		font-family: var(--font-pixel);
 		color: var(--color-text-dim);
 		outline: none;
 		opacity: 0.5;
-		transition: border-color 0.15s, opacity 0.15s;
+		transition: border-color 0.15s, opacity 0.15s, background 0.15s;
+		min-width: 44px;
+		min-height: 44px;
 	}
 
 	.shape-btn.affordable {
@@ -960,27 +1173,56 @@
 	.shape-btn.active {
 		border-color: var(--color-gold);
 		color: var(--color-gold);
-		background: rgba(255, 221, 85, 0.08);
+		background: rgba(255, 221, 85, 0.1);
 		opacity: 1;
+		box-shadow: 0 0 8px rgba(255, 221, 85, 0.2);
 	}
 
 	.shape-btn:hover {
 		border-color: var(--color-accent);
+		background: rgba(100, 140, 255, 0.06);
 		opacity: 1;
 	}
 
 	.shape-icon {
-		font-size: 20px;
+		font-size: 22px;
 	}
 
 	.shape-label {
-		font-size: 8px;
+		font-size: 9px;
 		letter-spacing: 1px;
 	}
 
 	.shape-cost {
-		font-size: 8px;
+		font-size: 9px;
 		display: flex;
 		gap: 6px;
+	}
+
+	@media (max-width: 768px) {
+		.shape-selector {
+			bottom: 10px;
+			padding: 8px 10px;
+			gap: 6px;
+			max-width: 96vw;
+			overflow-x: auto;
+		}
+
+		.shape-btn {
+			padding: 8px 12px;
+			min-width: 60px;
+		}
+
+		.shape-icon {
+			font-size: 18px;
+		}
+
+		.shape-label {
+			font-size: 8px;
+		}
+
+		.shape-cost {
+			font-size: 8px;
+		}
 	}
 </style>
