@@ -20,6 +20,7 @@ export function setMuted(val) {
 }
 export function toggleMute() {
   muted = !muted;
+  if (muted && ambientPlaying) stopAmbient();
   return muted;
 }
 
@@ -93,6 +94,66 @@ export function playBurst() {
   setTimeout(() => playTone(523, 0.12, "sine", 0.16), 60);
   setTimeout(() => playTone(784, 0.18, "sine", 0.16), 130);
   setTimeout(() => playTone(1047, 0.25, "sine", 0.14), 220);
+}
+
+let ambientNodes = null;
+let ambientPlaying = false;
+
+export function startAmbient() {
+    if (!audioCtx || muted || ambientPlaying) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    ambientPlaying = true;
+    
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.03 * masterVolume, audioCtx.currentTime + 2);
+    gain.connect(audioCtx.destination);
+    
+    const osc1 = audioCtx.createOscillator();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(55, audioCtx.currentTime);
+    osc1.connect(gain);
+    osc1.start();
+    
+    const osc2 = audioCtx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(82.5, audioCtx.currentTime);
+    const gain2 = audioCtx.createGain();
+    gain2.gain.setValueAtTime(0.015 * masterVolume, audioCtx.currentTime);
+    osc2.connect(gain2);
+    gain2.connect(audioCtx.destination);
+    osc2.start();
+    
+    const lfo = audioCtx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(0.1, audioCtx.currentTime);
+    const lfoGain = audioCtx.createGain();
+    lfoGain.gain.setValueAtTime(3, audioCtx.currentTime);
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc1.frequency);
+    lfo.start();
+    
+    ambientNodes = { gain, osc1, osc2, gain2, lfo, lfoGain };
+}
+
+export function stopAmbient() {
+    if (!ambientNodes) return;
+    ambientPlaying = false;
+    const now = audioCtx.currentTime;
+    ambientNodes.gain.gain.linearRampToValueAtTime(0, now + 1);
+    ambientNodes.gain2.gain.linearRampToValueAtTime(0, now + 1);
+    setTimeout(() => {
+        try {
+            ambientNodes.osc1.stop();
+            ambientNodes.osc2.stop();
+            ambientNodes.lfo.stop();
+        } catch(e) {}
+        ambientNodes = null;
+    }, 1200);
+}
+
+export function isAmbientPlaying() {
+    return ambientPlaying;
 }
 
 export function playAchievement() {

@@ -64,6 +64,18 @@
 	let comboPopup = $state(null);
 	let mobileTab = $state('canvas');
 	let dashboardOpen = $state(false);
+	let contextTip = $derived.by(() => {
+		if (gameState.stats.totalShapesPlaced === 0 && gameState.resources.energy < 10) {
+			return 'Tap the core to earn energy!';
+		}
+		if (gameState.stats.totalShapesPlaced === 0 && gameState.resources.energy >= 10) {
+			return 'Click a dashed slot to place a shape';
+		}
+		if (placed >= 1 && placed < 3 && gameState.resources.energy >= 20) {
+			return 'Fill all core edges for a combo bonus';
+		}
+		return null;
+	});
 
 	function handlePrestige() {
 		const shapeNames = ['triangle', 'square', 'pentagon', 'hexagon', 'heptagon', 'octagon'];
@@ -168,6 +180,7 @@
 		});
 
 		startEngine();
+		startAmbient();
 		recordOnlineTime();
 
 		const saveInterval = setInterval(() => {
@@ -178,6 +191,7 @@
 		return () => {
 			unsubscribe();
 			stopEngine();
+			stopAmbient();
 			clearInterval(saveInterval);
 			saveGame(gameState);
 			recordOnlineTime();
@@ -284,6 +298,13 @@
 		</div>
 	{/if}
 	<Tutorial />
+
+	{#if contextTip && !menuOpen && !skillTreeOpen && !achievementsOpen && !challengesOpen}
+		<div class="context-tip">
+			<span class="context-tip-arrow">▼</span>
+			<span class="context-tip-text">{contextTip}</span>
+		</div>
+	{/if}
 
 	<div class="hud">
 		<button class="menu-btn" onclick={() => (menuOpen = true)} title="Menu">
@@ -973,6 +994,43 @@
 		height: 1px;
 		background: var(--color-border);
 		margin: 4px 0;
+	}
+
+	.context-tip {
+		position: absolute;
+		bottom: 90px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 20;
+		pointer-events: none;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+		animation: tip-bob 2s ease-in-out infinite;
+	}
+
+	.context-tip-arrow {
+		font-size: 14px;
+		color: var(--color-accent);
+		opacity: 0.6;
+	}
+
+	.context-tip-text {
+		font-family: var(--font-pixel);
+		font-size: 9px;
+		color: var(--color-accent);
+		background: rgba(10, 10, 25, 0.9);
+		border: 1px solid rgba(100, 140, 255, 0.2);
+		border-radius: 4px;
+		padding: 6px 14px;
+		white-space: nowrap;
+		opacity: 0.7;
+	}
+
+	@keyframes tip-bob {
+		0%, 100% { transform: translateX(-50%) translateY(0); }
+		50% { transform: translateX(-50%) translateY(-4px); }
 	}
 
 	@media (max-width: 768px) {

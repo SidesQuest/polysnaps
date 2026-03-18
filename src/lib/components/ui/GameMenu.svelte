@@ -3,7 +3,7 @@
 	import { gameState, respecSkills, convertSkillPoints } from '$lib/game/state.svelte.js';
 	import { saveGame, deleteSave, exportSaveFile, importSaveFile } from '$lib/game/save.js';
 	import { loadStateFrom } from '$lib/game/state.svelte.js';
-	import { isMuted, toggleMute, getVolume, setVolume } from '$lib/game/audio.js';
+	import { isMuted, toggleMute, getVolume, setVolume, isAmbientPlaying, startAmbient, stopAmbient } from '$lib/game/audio.js';
 	import { formatNumber, formatTime } from '$lib/utils/format.js';
 	import { getAllAchievements } from '$lib/game/achievements.js';
 	import { CHALLENGE_DEFS, getAvailableChallenges } from '$lib/game/challenges.js';
@@ -155,6 +155,15 @@
 										/>
 										<span class="volume-pct">{Math.round(volume * 100)}%</span>
 									</div>
+								</div>
+								<div class="setting-row">
+									<span class="setting-label">Music</span>
+									<CyberButton small variant={isAmbientPlaying() ? 'green' : 'purple'} onclick={() => {
+										if (isAmbientPlaying()) stopAmbient();
+										else startAmbient();
+									}}>
+										{#snippet children()}{isAmbientPlaying() ? '♫ ON' : '♫ OFF'}{/snippet}
+									</CyberButton>
 								</div>
 								{/if}
 								<div class="setting-row">

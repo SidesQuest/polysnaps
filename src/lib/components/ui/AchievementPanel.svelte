@@ -8,6 +8,21 @@
 	let allAchievements = getAllAchievements();
 	let unlocked = $derived(gameState.achievements || []);
 	let mult = $derived(getAchievementMultiplier(unlocked));
+
+	let lastSeenCount = $state(0);
+	let newAchievements = $derived.by(() => {
+		const ul = gameState.achievements || [];
+		if (ul.length > lastSeenCount) {
+			return ul.slice(lastSeenCount);
+		}
+		return [];
+	});
+
+	$effect(() => {
+		if (open) {
+			lastSeenCount = unlocked.length;
+		}
+	});
 </script>
 
 {#if open}
@@ -29,6 +44,9 @@
 									<span class="ach-name">{isUnlocked ? ach.name : '???'}</span>
 									<span class="ach-desc">{isUnlocked ? ach.desc : 'Locked'}</span>
 								</div>
+								{#if isUnlocked && newAchievements.includes(ach.id)}
+									<span class="ach-new">NEW</span>
+								{/if}
 								{#if isUnlocked}
 									<span class="ach-bonus">+1%</span>
 								{/if}
@@ -154,6 +172,23 @@
 		color: var(--color-green);
 		flex-shrink: 0;
 		margin-top: 2px;
+	}
+
+	.ach-new {
+		font-family: var(--font-pixel);
+		font-size: 7px;
+		color: var(--color-gold);
+		background: rgba(255, 221, 85, 0.15);
+		border: 1px solid rgba(255, 221, 85, 0.3);
+		border-radius: 3px;
+		padding: 2px 6px;
+		animation: new-pulse 1s ease-in-out infinite alternate;
+		flex-shrink: 0;
+	}
+
+	@keyframes new-pulse {
+		0% { opacity: 0.7; }
+		100% { opacity: 1; text-shadow: 0 0 6px rgba(255, 221, 85, 0.5); }
 	}
 
 	@keyframes ach-fade {
