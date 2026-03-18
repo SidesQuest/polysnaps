@@ -10,7 +10,7 @@
 
 	const CORE_RADIUS = 50;
 	const TIER_COLORS = ['#44aaff', '#44ff88', '#ffcc44', '#ff44aa', '#aa44ff', '#44ffff'];
-	const MAX_FLOW_PATHS = 10;
+	let dynamicMaxFlowPaths = $derived(Math.max(3, Math.min(12, 15 - Math.floor(geometry.length / 8))));
 
 	let svgEl = $state(null);
 
@@ -31,6 +31,7 @@
 	let floatId = 0;
 	let particleId = 0;
 	let hoveredNode = $state(null);
+	let flashedShapeIds = $state([]);
 	let selectedShape = $state('triangle');
 	let availableShapes = $derived(getAvailableShapes());
 	let selectedCosts = $derived(getShapeResourceCosts(selectedShape));
@@ -145,9 +146,9 @@
 			return children.length === 0;
 		});
 
-		const sampled = leafNodes.length <= MAX_FLOW_PATHS
+		const sampled = leafNodes.length <= dynamicMaxFlowPaths
 			? leafNodes
-			: leafNodes.filter((_, i) => i % Math.ceil(leafNodes.length / MAX_FLOW_PATHS) === 0);
+			: leafNodes.filter((_, i) => i % Math.ceil(leafNodes.length / dynamicMaxFlowPaths) === 0);
 
 		return sampled.map((leaf) => {
 			const points = [{ x: leaf.center.x, y: leaf.center.y }];
@@ -287,6 +288,13 @@
 				const depth = slot.layer || 1;
 				spawnPlaceParticles(slot.center.x, slot.center.y, getLayerColor(depth));
 				haptic(20);
+				const newNodeId = gameState.nodes[gameState.nodes.length - 1]?.id;
+				if (newNodeId) {
+					flashedShapeIds = [...flashedShapeIds, newNodeId];
+					setTimeout(() => {
+						flashedShapeIds = flashedShapeIds.filter(id => id !== newNodeId);
+					}, 500);
+				}
 				const prod = getNodeProduction(gameState.nodes[gameState.nodes.length - 1]?.id);
 				if (prod > 0) {
 					const resKey = slot.parentId === 'core' ? getEdgeResource(slot.edgeIndex) : null;
@@ -666,6 +674,7 @@
 		<polygon
 			points={verticesToString(geo.vertices)}
 			class="placed-shape"
+			class:just-placed={flashedShapeIds.includes(geo.node.id)}
 			class:in-zone={inZone}
 			class:pentagon-full={isPentagon && pentPct > 0.9}
 			class:pentagon-clickable={isPentagon && pentStored > 0}
@@ -954,6 +963,16 @@
 		stroke-width: 1.8;
 		cursor: default;
 		transition: filter 0.3s;
+	}
+
+	.placed-shape.just-placed {
+		animation: shape-flash 0.5s ease-out;
+	}
+
+	@keyframes shape-flash {
+		0% { filter: brightness(3) saturate(0); }
+		30% { filter: brightness(2) saturate(0.5); }
+		100% { filter: brightness(1) saturate(1); }
 	}
 
 	.placed-shape:hover {

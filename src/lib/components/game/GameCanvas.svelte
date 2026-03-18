@@ -8,7 +8,7 @@
 	import { getAllAchievements } from '$lib/game/achievements.js';
 	import { CHALLENGE_DEFS } from '$lib/game/challenges.js';
 	import { getAllCombos } from '$lib/game/combos.js';
-	import { playAchievement } from '$lib/game/audio.js';
+	import { playAchievement, startAmbient, stopAmbient } from '$lib/game/audio.js';
 	import { addToast } from '$lib/game/toast.svelte.js';
 	import { formatNumber, formatTime } from '$lib/utils/format.js';
 	import ShapeNetwork from './ShapeNetwork.svelte';
@@ -245,12 +245,12 @@
 			<CyberPanel title="WELCOME BACK" accent="gold">
 				<div class="offline-body">
 					<span class="offline-time">Away for {formatTime(offlinePopup.seconds)}</span>
-					<span class="offline-earned energy">+{formatNumber(offlinePopup.energy)} energy</span>
+					<span class="offline-earned energy" style="animation-delay: 0.2s;">+{formatNumber(offlinePopup.energy)} energy</span>
 					{#if offlinePopup.flux > 0}
-						<span class="offline-earned flux">+{formatNumber(offlinePopup.flux)} flux</span>
+						<span class="offline-earned flux" style="animation-delay: 0.4s;">+{formatNumber(offlinePopup.flux)} flux</span>
 					{/if}
 					{#if offlinePopup.prisms > 0}
-						<span class="offline-earned prisms">+{formatNumber(offlinePopup.prisms)} prisms</span>
+						<span class="offline-earned prisms" style="animation-delay: 0.6s;">+{formatNumber(offlinePopup.prisms)} prisms</span>
 					{/if}
 					{#if offlinePopup.adDoubleAvailable && !offlinePopup.doubled}
 						<CyberButton small variant="green" onclick={(e) => {
@@ -427,11 +427,24 @@
 	.offline-time {
 		font-size: 10px;
 		color: var(--color-text-dim);
+		animation: offline-time-in 0.3s ease-out;
+	}
+
+	@keyframes offline-time-in {
+		from { opacity: 0; }
+		to { opacity: 1; }
 	}
 
 	.offline-earned {
-		font-size: 13px;
+		font-size: 14px;
 		font-weight: normal;
+		opacity: 0;
+		animation: offline-count-in 0.5s ease-out forwards;
+	}
+
+	@keyframes offline-count-in {
+		0% { opacity: 0; transform: translateY(10px) scale(0.8); }
+		100% { opacity: 1; transform: translateY(0) scale(1); }
 	}
 
 	.offline-earned.energy { color: var(--color-accent); }
