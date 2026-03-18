@@ -647,6 +647,30 @@ export function placeShape(parentId, edgeIndex, shapeType = "triangle") {
   return true;
 }
 
+export function removeShape(nodeId) {
+    if (nodeId === 'core') return false;
+    const node = gameState.nodes.find(n => n.id === nodeId);
+    if (!node) return false;
+    
+    const children = gameState.nodes.filter(n => n.parentId === nodeId);
+    if (children.length > 0) return false;
+    
+    const shapeDef = SHAPE_DEFS[node.shape] || SHAPE_DEFS.triangle;
+    const refundPct = 0.5;
+    const totalPlaced = gameState.nodes.length - 2;
+    const baseCost = Math.floor(shapeDef.baseCost * Math.pow(shapeDef.costMultiplier, totalPlaced));
+    
+    for (const [res, pct] of Object.entries(shapeDef.costResources || {})) {
+        gameState.resources[res] += Math.floor(baseCost * pct * refundPct);
+    }
+    
+    gameState.nodes = gameState.nodes.filter(n => n.id !== nodeId);
+    delete gameState.generatorCounts[nodeId];
+    delete gameState.pentagonStorage[nodeId];
+    
+    return true;
+}
+
 export function undoLastPlacement() {
   if (!lastPlacement) return false;
   if (Date.now() - lastPlacement.timestamp > 5000) {

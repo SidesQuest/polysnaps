@@ -1,7 +1,9 @@
 <script>
 	import { base } from '$app/paths';
 	import '../app.css';
+	import { getTheme } from '$lib/game/theme.svelte.js';
 	let { children } = $props();
+	let theme = $derived(getTheme());
 </script>
 
 <svelte:head>
@@ -11,7 +13,7 @@
 	</style>`}
 </svelte:head>
 
-<div class="app">
+<div class="app {theme ? `theme-${theme}` : ''}">
 	{@render children()}
 </div>
 <div id="crt-layer"></div>

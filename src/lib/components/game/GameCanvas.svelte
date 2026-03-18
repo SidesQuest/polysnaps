@@ -631,6 +631,15 @@
 		position: relative;
 	}
 
+	.network-area::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(ellipse at center, transparent 40%, rgba(8,8,20,0.5) 80%, rgba(8,8,20,0.85) 100%);
+		pointer-events: none;
+		z-index: 1;
+	}
+
 	.side-panel {
 		display: flex;
 		flex-direction: column;

@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { gameState, placeShape, canAffordShape, addResource, getNodeProduction, getNodeDepth, getBuffZones, getClickValue, performClick, getTierLevel, getNodeChildren, getEdgeResource, getNodeResource, getGeneratorCount, getAvailableShapes, getShapePlacementCost, getShapeResourceCosts, getFogState, getPuzzleSlots, getPentagonStorage, getPentagonCapacity, releasePentagonBurst, undoLastPlacement, getLastPlacement } from '$lib/game/state.svelte.js';
+	import { gameState, placeShape, removeShape, canAffordShape, addResource, getNodeProduction, getNodeDepth, getBuffZones, getClickValue, performClick, getTierLevel, getNodeChildren, getEdgeResource, getNodeResource, getGeneratorCount, getAvailableShapes, getShapePlacementCost, getShapeResourceCosts, getFogState, getPuzzleSlots, getPentagonStorage, getPentagonCapacity, releasePentagonBurst, undoLastPlacement, getLastPlacement } from '$lib/game/state.svelte.js';
 	import { RESOURCE_DEFS } from '$lib/game/state.svelte.js';
 	import { buildGeometryTree, getOpenSlots, verticesToString, getPolygonPointsString, getCoreVertices, SHAPE_DEFS } from '$lib/game/shapes.js';
 	import { isPointRevealed, FOG_CELL_SIZE, getRevealedCells } from '$lib/game/fog.js';
@@ -37,6 +37,7 @@
 	let fogCells = $derived(getFogState());
 	let puzzleSlots = $derived(getPuzzleSlots());
 	let showUndo = $state(false);
+	let removeMode = $state(false);
 	let panX = $state(0);
 	let panY = $state(0);
 	let zoom = $state(1);
@@ -462,6 +463,34 @@
 			handleCoreClick(e);
 		}
 	}
+
+	function captureScreenshot() {
+		if (!svgEl) return;
+		const svgData = new XMLSerializer().serializeToString(svgEl);
+		const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+		const url = URL.createObjectURL(svgBlob);
+		
+		const canvas = document.createElement('canvas');
+		const ctx = canvas.getContext('2d');
+		const img = new Image();
+		img.onload = () => {
+			canvas.width = 1920;
+			canvas.height = 1080;
+			ctx.fillStyle = '#0e1024';
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+			ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+			URL.revokeObjectURL(url);
+			
+			canvas.toBlob((blob) => {
+				const a = document.createElement('a');
+				a.href = URL.createObjectURL(blob);
+				a.download = `polysnaps-${Date.now()}.png`;
+				a.click();
+				URL.revokeObjectURL(a.href);
+			}, 'image/png');
+		};
+		img.src = url;
+	}
 </script>
 
 <svelte:window onkeydown={handleKeyboardShortcut} />
@@ -634,21 +663,34 @@
 			{@const pentStored = isPentagon ? getPentagonStorage(geo.node.id) : 0}
 			{@const pentCap = isPentagon ? getPentagonCapacity(geo.node.id) : 1}
 			{@const pentPct = isPentagon ? Math.min(1, pentStored / pentCap) : 0}
-			<polygon
-				points={verticesToString(geo.vertices)}
-				class="placed-shape"
-				class:in-zone={inZone}
-				class:pentagon-full={isPentagon && pentPct > 0.9}
-				class:pentagon-clickable={isPentagon && pentStored > 0}
-				class:hex-synergy={isHexSynergy}
-				style="stroke: {color}; fill: url(#shape-fill-{(depth - 1) % TIER_COLORS.length});"
-				onclick={isPentagon ? (e) => handlePentagonClick(e, geo) : undefined}
-				onmouseenter={() => handleShapeHover(geo)}
-				onmouseleave={() => (hoveredNode = null)}
-				role={isPentagon ? 'button' : 'img'}
-				tabindex={isPentagon ? '0' : undefined}
-				onkeydown={isPentagon ? (e) => e.key === 'Enter' && handlePentagonClick(e, geo) : undefined}
-			/>
+		<polygon
+			points={verticesToString(geo.vertices)}
+			class="placed-shape"
+			class:in-zone={inZone}
+			class:pentagon-full={isPentagon && pentPct > 0.9}
+			class:pentagon-clickable={isPentagon && pentStored > 0}
+			class:hex-synergy={isHexSynergy}
+			class:remove-mode={removeMode}
+			style="stroke: {color}; fill: url(#shape-fill-{(depth - 1) % TIER_COLORS.length});"
+			onclick={(e) => {
+				if (removeMode && !isPentagon) {
+					e.preventDefault();
+					e.stopPropagation();
+					const children = gameState.nodes.filter(n => n.parentId === geo.node.id);
+					if (children.length === 0) {
+						removeShape(geo.node.id);
+						removeMode = false;
+					}
+				} else if (isPentagon) {
+					handlePentagonClick(e, geo);
+				}
+			}}
+			onmouseenter={() => handleShapeHover(geo)}
+			onmouseleave={() => (hoveredNode = null)}
+			role={isPentagon || removeMode ? 'button' : 'img'}
+			tabindex={isPentagon || removeMode ? '0' : undefined}
+			onkeydown={isPentagon ? (e) => e.key === 'Enter' && handlePentagonClick(e, geo) : undefined}
+		/>
 			{#if isPentagon && pentPct > 0}
 				<rect
 					x={geo.center.x - 12}
@@ -732,6 +774,19 @@
 		}
 	}}>↩ UNDO</button>
 {/if}
+
+<button 
+	class="remove-toggle" 
+	class:active={removeMode}
+	onclick={() => (removeMode = !removeMode)}
+	title="Remove a shape (50% refund)"
+>
+	{removeMode ? '✕ CANCEL' : '🗑 REMOVE'}
+</button>
+
+<button class="screenshot-btn" onclick={captureScreenshot} title="Save screenshot">
+	📷
+</button>
 
 {#if availableShapes.length > 1}
 	<div class="shape-selector">
@@ -1281,6 +1336,66 @@
 		.shape-cost {
 			font-size: 8px;
 		}
+	}
+
+	.remove-toggle {
+		position: absolute;
+		top: 12px;
+		left: 12px;
+		font-family: var(--font-pixel);
+		font-size: 9px;
+		color: var(--color-text-dim);
+		background: rgba(14, 16, 36, 0.95);
+		border: 2px solid var(--color-border);
+		border-radius: 4px;
+		padding: 6px 14px;
+		cursor: pointer;
+		z-index: 5;
+		transition: border-color 0.15s, background 0.15s, color 0.15s;
+	}
+
+	.remove-toggle:hover {
+		border-color: var(--color-red);
+		color: var(--color-red);
+	}
+
+	.remove-toggle.active {
+		border-color: var(--color-red);
+		color: var(--color-red);
+		background: rgba(255, 85, 119, 0.1);
+	}
+
+	.placed-shape.remove-mode {
+		cursor: pointer;
+	}
+
+	.placed-shape.remove-mode:hover {
+		filter: brightness(0.6) saturate(0.5);
+		stroke-dasharray: 4 3;
+	}
+
+	.screenshot-btn {
+		position: absolute;
+		bottom: 12px;
+		right: 12px;
+		font-size: 18px;
+		background: rgba(14, 16, 36, 0.95);
+		border: 2px solid var(--color-border);
+		border-radius: 4px;
+		padding: 6px 10px;
+		cursor: pointer;
+		z-index: 5;
+		transition: border-color 0.15s, transform 0.1s;
+		line-height: 1;
+	}
+
+	.screenshot-btn:hover {
+		border-color: var(--color-accent);
+		transform: scale(1.1);
+	}
+
+	.screenshot-btn:active {
+		transform: scale(0.95);
 	}
 
 	.undo-btn {

@@ -8,6 +8,7 @@
 	import { getAllAchievements } from '$lib/game/achievements.js';
 	import { CHALLENGE_DEFS, getAvailableChallenges } from '$lib/game/challenges.js';
 	import { getRespecCost } from '$lib/game/iap.js';
+	import { getTheme, setTheme } from '$lib/game/theme.svelte.js';
 	import CyberPanel from './CyberPanel.svelte';
 	import CyberButton from './CyberButton.svelte';
 
@@ -23,6 +24,7 @@
 	let importFlash = $state(false);
 	let allAchievements = getAllAchievements();
 	let respecCost = $derived(getRespecCost(gameState.prestige.respecCount || 0));
+	let currentTheme = $derived(getTheme());
 
 	function handleSave() {
 		saveGame(gameState);
@@ -160,6 +162,14 @@
 									<CyberButton small variant="ghost" onclick={() => (usePixi = !usePixi)}>
 										{#snippet children()}{usePixi ? 'WebGL' : 'SVG'}{/snippet}
 									</CyberButton>
+								</div>
+								<div class="setting-row">
+									<span class="setting-label">Theme</span>
+									<div class="theme-btns">
+										<button class="theme-btn" class:active={currentTheme === ''} onclick={() => setTheme('')}>Cyber</button>
+										<button class="theme-btn" class:active={currentTheme === 'neon'} onclick={() => setTheme('neon')}>Neon</button>
+										<button class="theme-btn" class:active={currentTheme === 'midnight'} onclick={() => setTheme('midnight')}>Night</button>
+									</div>
 								</div>
 								<div class="setting-row">
 									<span class="setting-label">Auto-save</span>
@@ -551,5 +561,33 @@
 			opacity: 1;
 			transform: translateY(0) scale(1);
 		}
+	}
+
+	.theme-btns {
+		display: flex;
+		gap: 4px;
+	}
+
+	.theme-btn {
+		font-family: var(--font-pixel);
+		font-size: 8px;
+		color: var(--color-text-dim);
+		background: rgba(255,255,255,0.03);
+		border: 1px solid var(--color-border);
+		border-radius: 3px;
+		padding: 4px 8px;
+		cursor: pointer;
+		transition: border-color 0.15s, color 0.15s, background 0.15s;
+	}
+
+	.theme-btn:hover {
+		border-color: var(--color-accent);
+		color: var(--color-text);
+	}
+
+	.theme-btn.active {
+		border-color: var(--color-accent);
+		color: var(--color-accent);
+		background: rgba(100,140,255,0.1);
 	}
 </style>

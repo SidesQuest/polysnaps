@@ -18,6 +18,36 @@
   --panel-radius: 6px;
 }
 
+.theme-neon {
+    --color-bg: #0a0015;
+    --color-surface: #150028;
+    --color-surface-hover: #200040;
+    --color-border: #4a2080;
+    --color-border-light: #6a40a0;
+    --color-text: #f0e0ff;
+    --color-text-dim: #b090dd;
+    --color-accent: #ff44ff;
+    --color-accent-glow: #ff44ff44;
+    --color-gold: #ffaa00;
+    --color-green: #00ff88;
+    --color-red: #ff2266;
+}
+
+.theme-midnight {
+    --color-bg: #080c14;
+    --color-surface: #101822;
+    --color-surface-hover: #182030;
+    --color-border: #2a3850;
+    --color-border-light: #3a5070;
+    --color-text: #d0dce8;
+    --color-text-dim: #8098b0;
+    --color-accent: #4488cc;
+    --color-accent-glow: #4488cc44;
+    --color-gold: #ddaa44;
+    --color-green: #44bb77;
+    --color-red: #cc4455;
+}
+
 * {
   margin: 0;
   padding: 0;
