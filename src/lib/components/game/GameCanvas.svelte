@@ -63,6 +63,7 @@
 	let allCombos = getAllCombos();
 	let comboPopup = $state(null);
 	let mobileTab = $state('canvas');
+	let dashboardOpen = $state(false);
 
 	function handlePrestige() {
 		const shapeNames = ['triangle', 'square', 'pentagon', 'hexagon', 'heptagon', 'octagon'];
@@ -338,6 +339,39 @@
 		<div class="side-panel" class:mobile-hidden={mobileTab !== 'panel'}>
 			<ShopPanel />
 			<ComboPanel />
+			<button class="dash-toggle" onclick={() => (dashboardOpen = !dashboardOpen)}>
+				<span class="dash-title">📊 STATS</span>
+				<span class="dash-arrow">{dashboardOpen ? '▲' : '▼'}</span>
+			</button>
+			{#if dashboardOpen}
+				<CyberPanel>
+					<div class="dash-body">
+						{#each unlockedResources as res}
+							<div class="dash-row">
+								<span class="dash-label" style="color: {res.color};">{res.icon} {res.name}</span>
+								<span class="dash-value" style="color: {res.color};">{formatNumber(production[res.key])}/s</span>
+							</div>
+						{/each}
+						<div class="dash-sep"></div>
+						<div class="dash-row">
+							<span class="dash-label">Shapes</span>
+							<span class="dash-value">{placed}</span>
+						</div>
+						<div class="dash-row">
+							<span class="dash-label">Prestige</span>
+							<span class="dash-value gold">P{gameState.prestige.level} · 🔮{gameState.prestige.currency}</span>
+						</div>
+						<div class="dash-row">
+							<span class="dash-label">Achievements</span>
+							<span class="dash-value">+{(gameState.achievements || []).length}% prod</span>
+						</div>
+						<div class="dash-row">
+							<span class="dash-label">Time played</span>
+							<span class="dash-value">{formatTime(gameState.stats.timePlayed)}</span>
+						</div>
+					</div>
+				</CyberPanel>
+			{/if}
 			{#if gameState.prestige.level >= 1}
 			<SkillPanel bind:open={skillTreeOpen} />
 		{/if}
@@ -857,6 +891,75 @@
 		0% { transform: scale(0) rotate(-30deg); }
 		50% { transform: scale(1.3) rotate(5deg); }
 		100% { transform: scale(1) rotate(0deg); }
+	}
+
+	.dash-toggle {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 10px 14px;
+		background: var(--color-surface);
+		border: 2px solid var(--color-border);
+		border-radius: var(--panel-radius);
+		cursor: pointer;
+		font-family: var(--font-pixel);
+		color: var(--color-text);
+		box-shadow: inset 1px 1px 0 #2a2f55, inset -1px -1px 0 #12163a, 0 4px 16px rgba(0,0,0,0.5);
+		transition: background 0.15s, border-color 0.15s;
+		min-height: 44px;
+	}
+
+	.dash-toggle:hover {
+		background: var(--color-surface-hover);
+		border-color: var(--color-border-light);
+	}
+
+	.dash-title {
+		font-size: 11px;
+		color: var(--color-accent);
+		letter-spacing: 2px;
+	}
+
+	.dash-arrow {
+		margin-left: auto;
+		font-size: 10px;
+		color: var(--color-text-dim);
+	}
+
+	.dash-body {
+		padding: 12px 14px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.dash-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 3px 0;
+	}
+
+	.dash-label {
+		font-family: var(--font-pixel);
+		font-size: 9px;
+		color: var(--color-text-dim);
+	}
+
+	.dash-value {
+		font-family: var(--font-pixel);
+		font-size: 10px;
+		color: var(--color-text);
+	}
+
+	.dash-value.gold {
+		color: var(--color-gold);
+	}
+
+	.dash-sep {
+		height: 1px;
+		background: var(--color-border);
+		margin: 4px 0;
 	}
 
 	@media (max-width: 768px) {
