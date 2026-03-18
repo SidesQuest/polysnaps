@@ -7,6 +7,7 @@
 	import { getOfflineSeconds, calculateOfflineEarnings, doubleOfflineEarnings, recordOnlineTime } from '$lib/game/offline.js';
 	import { getAllAchievements } from '$lib/game/achievements.js';
 	import { CHALLENGE_DEFS } from '$lib/game/challenges.js';
+	import { getAllCombos } from '$lib/game/combos.js';
 	import { playAchievement } from '$lib/game/audio.js';
 	import { addToast } from '$lib/game/toast.svelte.js';
 	import { formatNumber, formatTime } from '$lib/utils/format.js';
@@ -59,6 +60,8 @@
 	let usePixi = $state(false);
 	let prevComboLen = $state(0);
 	let allAchievements = getAllAchievements();
+	let allCombos = getAllCombos();
+	let comboPopup = $state(null);
 	let mobileTab = $state('canvas');
 
 	function handlePrestige() {
@@ -120,7 +123,15 @@
 
 			const curComboLen = (gameState.discoveredCombos || []).length;
 			if (curComboLen > prevComboLen) {
-				addToast('New combo discovered!', 'combo');
+				const newComboIds = (gameState.discoveredCombos || []).slice(prevComboLen);
+				for (const comboId of newComboIds) {
+					const comboDef = allCombos.find(c => c.id === comboId);
+					if (comboDef) {
+						addToast(`${comboDef.icon} ${comboDef.name} — ${comboDef.description}`, 'combo');
+						comboPopup = { name: comboDef.name, icon: comboDef.icon, bonus: comboDef.bonus.value };
+						setTimeout(() => { comboPopup = null; }, 2500);
+					}
+				}
 				prevComboLen = curComboLen;
 			}
 
@@ -211,6 +222,14 @@
 				<span class="pb-shape">Core evolved to {prestigeInfo.nextName}</span>
 				<span class="pb-reward">+{prestigeInfo.reward} Cores earned</span>
 			</div>
+		</div>
+	{/if}
+
+	{#if comboPopup}
+		<div class="combo-popup">
+			<span class="combo-popup-icon">{comboPopup.icon}</span>
+			<span class="combo-popup-name">{comboPopup.name}</span>
+			<span class="combo-popup-bonus">×{comboPopup.bonus} multiplier</span>
 		</div>
 	{/if}
 
@@ -775,6 +794,59 @@
 	@keyframes milestone-bounce {
 		0% { transform: scale(0) rotate(-20deg); }
 		50% { transform: scale(1.4) rotate(5deg); }
+		100% { transform: scale(1) rotate(0deg); }
+	}
+
+	.combo-popup {
+		position: absolute;
+		top: 35%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		z-index: 45;
+		pointer-events: none;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		padding: 20px 36px;
+		background: rgba(10, 10, 25, 0.9);
+		border: 2px solid var(--color-green);
+		border-radius: 8px;
+		box-shadow: 0 0 30px rgba(85, 255, 153, 0.3);
+		animation: combo-enter 2.5s ease-out forwards;
+	}
+
+	.combo-popup-icon {
+		font-size: 32px;
+		animation: combo-icon-bounce 0.5s ease-out;
+	}
+
+	.combo-popup-name {
+		font-family: var(--font-pixel);
+		font-size: 14px;
+		color: var(--color-green);
+		letter-spacing: 2px;
+		text-shadow: 0 0 12px rgba(85, 255, 153, 0.5);
+	}
+
+	.combo-popup-bonus {
+		font-family: var(--font-pixel);
+		font-size: 11px;
+		color: var(--color-gold);
+		text-shadow: 0 0 8px rgba(255, 221, 85, 0.4);
+	}
+
+	@keyframes combo-enter {
+		0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+		15% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+		25% { transform: translate(-50%, -50%) scale(1); }
+		75% { opacity: 1; }
+		100% { opacity: 0; transform: translate(-50%, -55%) scale(0.95); }
+	}
+
+	@keyframes combo-icon-bounce {
+		0% { transform: scale(0) rotate(-30deg); }
+		50% { transform: scale(1.3) rotate(5deg); }
 		100% { transform: scale(1) rotate(0deg); }
 	}
 

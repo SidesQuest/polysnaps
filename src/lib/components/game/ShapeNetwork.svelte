@@ -725,6 +725,14 @@
 	</div>
 {/if}
 
+{#if showUndo}
+	<button class="undo-btn" onclick={() => {
+		if (undoLastPlacement()) {
+			showUndo = false;
+		}
+	}}>↩ UNDO</button>
+{/if}
+
 {#if availableShapes.length > 1}
 	<div class="shape-selector">
 		{#each availableShapes as shape}
@@ -1273,5 +1281,32 @@
 		.shape-cost {
 			font-size: 8px;
 		}
+	}
+
+	.undo-btn {
+		position: absolute;
+		top: 12px;
+		right: 12px;
+		font-family: var(--font-pixel);
+		font-size: 9px;
+		color: var(--color-text);
+		background: rgba(14, 16, 36, 0.95);
+		border: 2px solid var(--color-border);
+		border-radius: 4px;
+		padding: 6px 14px;
+		cursor: pointer;
+		animation: undo-fade-in 0.2s ease-out;
+		z-index: 5;
+		transition: border-color 0.15s, background 0.15s;
+	}
+
+	.undo-btn:hover {
+		border-color: var(--color-accent);
+		background: rgba(100, 140, 255, 0.1);
+	}
+
+	@keyframes undo-fade-in {
+		from { opacity: 0; transform: translateY(-8px); }
+		to { opacity: 1; transform: translateY(0); }
 	}
 </style>
