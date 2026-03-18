@@ -44,6 +44,7 @@ import { getRespecCost } from "./iap.js";
 
 let nextId = 1;
 let prevComboCount = 0;
+let lastPlacement = null;
 
 export const RESOURCE_DEFS = {
   energy: {
@@ -623,6 +624,12 @@ export function placeShape(parentId, edgeIndex, shapeType = "triangle") {
   gameState.generatorCounts[newId] = 1 + (gameState.generatorBonus || 0);
   gameState.stats.totalShapesPlaced++;
 
+  lastPlacement = {
+    nodeId: newId,
+    costs: { ...costs },
+    timestamp: Date.now(),
+  };
+
   playPlace();
 
   const prevCombos = prevComboCount;
@@ -638,6 +645,50 @@ export function placeShape(parentId, edgeIndex, shapeType = "triangle") {
   prevComboCount = newCombos.length;
 
   return true;
+}
+
+export function undoLastPlacement() {
+  if (!lastPlacement) return false;
+  if (Date.now() - lastPlacement.timestamp > 5000) {
+    lastPlacement = null;
+    return false;
+  }
+  const node = gameState.nodes.find((n) => n.id === lastPlacement.nodeId);
+  if (!node) {
+    lastPlacement = null;
+    return false;
+  }
+
+  const children = gameState.nodes.filter(
+    (n) => n.parentId === lastPlacement.nodeId,
+  );
+  if (children.length > 0) {
+    lastPlacement = null;
+    return false;
+  }
+
+  gameState.nodes = gameState.nodes.filter(
+    (n) => n.id !== lastPlacement.nodeId,
+  );
+  delete gameState.generatorCounts[lastPlacement.nodeId];
+  delete gameState.pentagonStorage[lastPlacement.nodeId];
+
+  for (const [res, cost] of Object.entries(lastPlacement.costs)) {
+    gameState.resources[res] += cost;
+  }
+
+  gameState.stats.totalShapesPlaced--;
+  lastPlacement = null;
+  return true;
+}
+
+export function getLastPlacement() {
+  if (!lastPlacement) return null;
+  if (Date.now() - lastPlacement.timestamp > 5000) {
+    lastPlacement = null;
+    return null;
+  }
+  return lastPlacement;
 }
 
 export function addResource(type, amount) {

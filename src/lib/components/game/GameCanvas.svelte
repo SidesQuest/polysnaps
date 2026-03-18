@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { gameState, addResource, getProductionByResource, getUnlockedResources, loadStateFrom, getPlacedCount, tickGenerators, tickAutoSystems, tickFluxConvert, tickPuzzleChecks, tickPentagonStorage, tickAchievements, tickChallengeCheck, getPrestigeReward, getPrestigeThreshold } from '$lib/game/state.svelte.js';
+	import { gameState, addResource, getProductionByResource, getUnlockedResources, loadStateFrom, getPlacedCount, tickGenerators, tickAutoSystems, tickFluxConvert, tickPuzzleChecks, tickPentagonStorage, tickAchievements, tickChallengeCheck, getPrestigeReward, getPrestigeThreshold, canPrestige, resetForPrestige } from '$lib/game/state.svelte.js';
 	import { startEngine, stopEngine, onTick } from '$lib/game/engine.js';
 	import { saveGame, loadGame, hasSave } from '$lib/game/save.js';
 	import { getOfflineSeconds, calculateOfflineEarnings, doubleOfflineEarnings, recordOnlineTime } from '$lib/game/offline.js';
@@ -47,6 +47,8 @@
 
 		return { label: 'Prestige ready!', progress: 100, target: 100, pct: 100 };
 	});
+	let milestonePopup = $state(null);
+	let lastMilestoneCheck = $state({ shapes: 0, energy: '' });
 	let offlinePopup = $state(null);
 	let skillTreeOpen = $state(false);
 	let achievementsOpen = $state(false);
@@ -128,6 +130,29 @@
 			if (prod.prisms > 0) addResource('prisms', prod.prisms * delta);
 			gameState.stats.timePlayed += delta;
 			gameState.stats.runTime = (gameState.stats.runTime || 0) + delta;
+
+			// Milestone checks
+			const shapeM = [10, 20, 50, 100, 500];
+			const energyM = [1e6, 1e9, 1e12];
+			const energyNames = ['1M', '1B', '1T'];
+			for (const m of shapeM) {
+				if (getPlacedCount() >= m && lastMilestoneCheck.shapes < m) {
+					lastMilestoneCheck.shapes = m;
+					milestonePopup = { text: `${m} SHAPES!`, sub: 'Network expanding', icon: '◆' };
+					addToast(`${m} shapes placed!`, 'info');
+					setTimeout(() => { milestonePopup = null; }, 2500);
+					break;
+				}
+			}
+			for (let i = 0; i < energyM.length; i++) {
+				if (gameState.stats.totalEnergyEarned >= energyM[i] && lastMilestoneCheck.energy !== energyNames[i]) {
+					lastMilestoneCheck.energy = energyNames[i];
+					milestonePopup = { text: `${energyNames[i]} ENERGY!`, sub: 'Power rising', icon: '⚡' };
+					addToast(`${energyNames[i]} total energy earned!`, 'info');
+					setTimeout(() => { milestonePopup = null; }, 2500);
+					break;
+				}
+			}
 		});
 
 		startEngine();
@@ -160,6 +185,12 @@
 		}
 		switch(e.key) {
 			case 'm': case 'M': menuOpen = true; break;
+			case 'p': case 'P':
+				if (canPrestige()) {
+					handlePrestige();
+					resetForPrestige();
+				}
+				break;
 			case 'Escape': break;
 		}
 	}
@@ -225,6 +256,13 @@
 	<AchievementPanel bind:open={achievementsOpen} />
 	<ChallengePanel bind:open={challengesOpen} />
 	<Toast />
+	{#if milestonePopup}
+		<div class="milestone-popup">
+			<span class="milestone-icon">{milestonePopup.icon}</span>
+			<span class="milestone-text">{milestonePopup.text}</span>
+			<span class="milestone-sub">{milestonePopup.sub}</span>
+		</div>
+	{/if}
 	<Tutorial />
 
 	<div class="hud">
@@ -690,6 +728,54 @@
 			opacity: 1;
 			transform: translate(-50%, -50%) scale(1);
 		}
+	}
+
+	.milestone-popup {
+		position: absolute;
+		top: 30%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		z-index: 42;
+		pointer-events: none;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		animation: milestone-anim 2.5s ease-out forwards;
+	}
+
+	.milestone-icon {
+		font-size: 36px;
+		animation: milestone-bounce 0.6s ease-out;
+	}
+
+	.milestone-text {
+		font-family: var(--font-pixel);
+		font-size: 18px;
+		color: var(--color-gold);
+		letter-spacing: 4px;
+		text-shadow: 0 0 20px rgba(255, 221, 85, 0.6);
+	}
+
+	.milestone-sub {
+		font-family: var(--font-pixel);
+		font-size: 10px;
+		color: var(--color-text-dim);
+		letter-spacing: 2px;
+	}
+
+	@keyframes milestone-anim {
+		0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+		15% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+		25% { transform: translate(-50%, -50%) scale(1); }
+		75% { opacity: 1; }
+		100% { opacity: 0; transform: translate(-50%, -55%); }
+	}
+
+	@keyframes milestone-bounce {
+		0% { transform: scale(0) rotate(-20deg); }
+		50% { transform: scale(1.4) rotate(5deg); }
+		100% { transform: scale(1) rotate(0deg); }
 	}
 
 	@media (max-width: 768px) {

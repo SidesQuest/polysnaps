@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { gameState, placeShape, canAffordShape, addResource, getNodeProduction, getNodeDepth, getBuffZones, getClickValue, performClick, getTierLevel, getNodeChildren, getEdgeResource, getNodeResource, getGeneratorCount, getAvailableShapes, getShapePlacementCost, getShapeResourceCosts, getFogState, getPuzzleSlots, getPentagonStorage, getPentagonCapacity, releasePentagonBurst } from '$lib/game/state.svelte.js';
+	import { gameState, placeShape, canAffordShape, addResource, getNodeProduction, getNodeDepth, getBuffZones, getClickValue, performClick, getTierLevel, getNodeChildren, getEdgeResource, getNodeResource, getGeneratorCount, getAvailableShapes, getShapePlacementCost, getShapeResourceCosts, getFogState, getPuzzleSlots, getPentagonStorage, getPentagonCapacity, releasePentagonBurst, undoLastPlacement, getLastPlacement } from '$lib/game/state.svelte.js';
 	import { RESOURCE_DEFS } from '$lib/game/state.svelte.js';
 	import { buildGeometryTree, getOpenSlots, verticesToString, getPolygonPointsString, getCoreVertices, SHAPE_DEFS } from '$lib/game/shapes.js';
 	import { isPointRevealed, FOG_CELL_SIZE, getRevealedCells } from '$lib/game/fog.js';
@@ -36,6 +36,7 @@
 	let selectedCosts = $derived(getShapeResourceCosts(selectedShape));
 	let fogCells = $derived(getFogState());
 	let puzzleSlots = $derived(getPuzzleSlots());
+	let showUndo = $state(false);
 	let panX = $state(0);
 	let panY = $state(0);
 	let zoom = $state(1);
@@ -292,6 +293,10 @@
 					const prodColor = resDef ? resDef.color : getLayerColor(depth);
 					spawnFloatingNum(slot.center.x, slot.center.y - 10, `+${formatNumber(prod)}/s`, prodColor);
 				}
+				showUndo = true;
+				if (typeof window !== 'undefined') {
+					setTimeout(() => { showUndo = false; }, 5000);
+				}
 			} else {
 				playError();
 			}
@@ -441,7 +446,25 @@
 			role: shapeDef?.role,
 		};
 	}
+
+	function handleKeyboardShortcut(e) {
+		if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+		const shapeKeys = ['triangle', 'square', 'pentagon', 'hexagon'];
+		if (e.key >= '1' && e.key <= '4') {
+			const idx = parseInt(e.key) - 1;
+			if (idx < availableShapes.length) {
+				selectedShape = availableShapes[idx].key;
+			}
+			e.preventDefault();
+		}
+		if (e.key === ' ' || e.key === 'Space') {
+			e.preventDefault();
+			handleCoreClick(e);
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleKeyboardShortcut} />
 
 <svg
 	bind:this={svgEl}
@@ -663,23 +686,6 @@
 		{/if}
 	{/each}
 
-	{#if hoveredNode}
-		<g class="tooltip" transform="translate({hoveredNode.x}, {hoveredNode.y})">
-			<rect
-				x="-60" y="-30" width="120" height="40" rx="3"
-				fill="rgba(11,11,25,0.95)" stroke={hoveredNode.color} stroke-width="1"
-			/>
-			<text x="0" y="-19" class="tooltip-title" fill={hoveredNode.color}>{hoveredNode.name} Lv.{hoveredNode.level}</text>
-			{#if hoveredNode.production > 0}
-				<text x="0" y="-9" class="tooltip-prod">{formatNumber(hoveredNode.production)}/s</text>
-			{/if}
-			<text x="0" y="1" class="tooltip-subtitle">{hoveredNode.subtitle}</text>
-			{#if hoveredNode.zoneBonus > 1}
-				<text x="0" y="9" class="tooltip-zone">Zone: {hoveredNode.zoneBonus}x</text>
-			{/if}
-		</g>
-	{/if}
-
 	{#each floatingNums as fn (fn.id)}
 		<text
 			x={fn.x} y={fn.y}
@@ -702,6 +708,22 @@
 		class="controls-hint"
 	>{isTouchDevice ? 'pinch to zoom · drag to pan' : 'scroll to zoom · shift+drag to pan'}</text>
 </svg>
+
+{#if hoveredNode}
+	<div class="html-tooltip" style="--tt-color: {hoveredNode.color};">
+		<div class="tt-row">
+			<span class="tt-name" style="color: {hoveredNode.color};">{hoveredNode.name}</span>
+			<span class="tt-level">Lv.{hoveredNode.level}</span>
+		</div>
+		{#if hoveredNode.production > 0}
+			<span class="tt-prod">+{formatNumber(hoveredNode.production)}/s</span>
+		{/if}
+		<span class="tt-sub">{hoveredNode.subtitle}</span>
+		{#if hoveredNode.zoneBonus > 1}
+			<span class="tt-zone">Zone: {hoveredNode.zoneBonus}×</span>
+		{/if}
+	</div>
+{/if}
 
 {#if availableShapes.length > 1}
 	<div class="shape-selector">
@@ -940,35 +962,62 @@
 		opacity: 0.6;
 	}
 
-	.tooltip {
+	.html-tooltip {
+		position: absolute;
+		bottom: 80px;
+		left: 50%;
+		transform: translateX(-50%);
+		background: rgba(10, 10, 25, 0.95);
+		border: 2px solid var(--tt-color);
+		border-radius: 6px;
+		padding: 10px 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		font-family: var(--font-pixel);
 		pointer-events: none;
+		z-index: 5;
+		min-width: 180px;
+		box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 0 8px color-mix(in srgb, var(--tt-color) 20%, transparent);
+		animation: tt-slide-in 0.15s ease-out;
 	}
 
-	.tooltip-title {
-		font-family: var(--font-pixel);
-		font-size: 5.5px;
-		text-anchor: middle;
+	.tt-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 12px;
 	}
 
-	.tooltip-prod {
-		font-family: var(--font-pixel);
-		font-size: 5px;
-		fill: var(--color-green);
-		text-anchor: middle;
+	.tt-name {
+		font-size: 11px;
+		letter-spacing: 1px;
 	}
 
-	.tooltip-subtitle {
-		font-family: var(--font-pixel);
-		font-size: 4.5px;
-		fill: var(--color-text-dim);
-		text-anchor: middle;
+	.tt-level {
+		font-size: 10px;
+		color: var(--color-text-dim);
 	}
 
-	.tooltip-zone {
-		font-family: var(--font-pixel);
-		font-size: 4.5px;
-		fill: var(--color-gold);
-		text-anchor: middle;
+	.tt-prod {
+		font-size: 10px;
+		color: var(--color-green);
+	}
+
+	.tt-sub {
+		font-size: 9px;
+		color: var(--color-text-dim);
+		line-height: 1.4;
+	}
+
+	.tt-zone {
+		font-size: 9px;
+		color: var(--color-gold);
+	}
+
+	@keyframes tt-slide-in {
+		from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+		to { opacity: 1; transform: translateX(-50%) translateY(0); }
 	}
 
 	.controls-hint {
